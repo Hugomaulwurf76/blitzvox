@@ -110,28 +110,28 @@ def _make_icon(recording: bool = False) -> QIcon:
 WORKFLOWS = [
     {
         "kind":     WorkflowKind.TRANSCRIPTION,
-        "label":    "Blitztext",
+        "label":    "BlitzVox",
         "subtitle": "Sprache rein. Text raus.",
         "icon":     "🎙",
         "color":    "#4a90d9",
     },
     {
         "kind":     WorkflowKind.TEXT_IMPROVE,
-        "label":    "Blitztext+",
+        "label":    "BlitzVox+",
         "subtitle": "Geschrieben sprechen.",
         "icon":     "✨",
         "color":    "#9b59b6",
     },
     {
         "kind":     WorkflowKind.DAMPF_ABLASSEN,
-        "label":    "Blitztext $%&!",
+        "label":    "BlitzVox $%&!",
         "subtitle": "Frust rein. Entspannt raus.",
         "icon":     "🔥",
         "color":    "#e67e22",
     },
     {
         "kind":     WorkflowKind.EMOJI_TEXT,
-        "label":    "Blitztext :)",
+        "label":    "BlitzVox :)",
         "subtitle": "Text rein. Emojis dazu.",
         "icon":     "😊",
         "color":    "#27ae60",
@@ -141,12 +141,13 @@ WORKFLOWS = [
 
 # ── Main tray app ─────────────────────────────────────────────────────────────
 
-class BlitztextTrayApp(QSystemTrayIcon):
+class BlitzVoxTrayApp(QSystemTrayIcon):
     # Qt signals for thread-safe UI updates
     _phase_signal = pyqtSignal(object, str, str)   # (kind, phase_name, message)
     # Hotkey signals (feuern aus pynput-Thread, landen im Qt-Hauptthread)
     _hk_start_signal = pyqtSignal(object)   # (kind) — Aufnahme starten
     _hk_stop_signal  = pyqtSignal(object)   # (kind) — Aufnahme stoppen
+    _hk_correction_signal = pyqtSignal()    # Korrekturfenster öffnen
 
     def __init__(self, app: QApplication):
         super().__init__(_make_icon(), app)
@@ -156,10 +157,10 @@ class BlitztextTrayApp(QSystemTrayIcon):
         if load_error:
             QMessageBox.warning(
                 None,
-                "Blitztext – Einstellungen nicht lesbar",
+                "BlitzVox – Einstellungen nicht lesbar",
                 "Die Einstellungsdatei konnte nicht gelesen werden:\n\n"
                 f"{load_error}\n\n"
-                "Blitztext startet mit den Standardwerten. settings.json wird jetzt mit "
+                "BlitzVox startet mit den Standardwerten. settings.json wird jetzt mit "
                 "den Standardwerten neu geschrieben. Die kaputte Datei liegt im oben "
                 "genannten Sicherungspfad.",
             )
@@ -169,18 +170,19 @@ class BlitztextTrayApp(QSystemTrayIcon):
         self._active_runner: Optional[WorkflowRunner] = None
         self._hotkey_service = None
 
-        self.setToolTip(f"Blitztext v{__version__}")
+        self.setToolTip(f"BlitzVox v{__version__}")
         self._build_menu()
         self._phase_signal.connect(self._on_phase_update)
         self._hk_start_signal.connect(self._hotkey_start)
         self._hk_stop_signal.connect(self._hotkey_stop)
+        self._hk_correction_signal.connect(self._open_correction)
 
         self._setup_hotkeys()
 
         # Show notification on first run
         if not self.settings.has_seen_onboarding:
             self.showMessage(
-                "Blitztext bereit",
+                "BlitzVox bereit",
                 "Klicke auf das Tray-Icon oder nutze die Hotkeys.",
                 QSystemTrayIcon.MessageIcon.Information,
                 3000,
@@ -198,6 +200,12 @@ class BlitztextTrayApp(QSystemTrayIcon):
             action.setData(wf["kind"])
             action.triggered.connect(lambda checked, w=wf: self._open_workflow(w))
             menu.addAction(action)
+
+        menu.addSeparator()
+
+        correct_action = QAction("✏  Letzten Text korrigieren …", self.app)
+        correct_action.triggered.connect(self._open_correction)
+        menu.addAction(correct_action)
 
         menu.addSeparator()
 
@@ -264,6 +272,13 @@ class BlitztextTrayApp(QSystemTrayIcon):
                         else self._hk_stop_signal.emit(k)
                     ),
                 )
+
+        # Korrekturfenster: jeder Tastendruck öffnet es (Toggle-Zustand egal)
+        if hk.correction:
+            svc.register(
+                hk.correction, "toggle",
+                on_toggle=lambda state: self._hk_correction_signal.emit(),
+            )
 
         svc.start()
         self._hotkey_service = svc
@@ -334,6 +349,33 @@ class BlitztextTrayApp(QSystemTrayIcon):
         # Update tray icon
         recording = phase_name == Phase.RECORDING.value
         self.setIcon(_make_icon(recording))
+
+    # ── Korrektur ─────────────────────────────────────────────────────────────
+
+    def _open_correction(self) -> None:
+        from ..services import corrections
+        from .correction_window import CorrectionWindow
+
+        win = getattr(self, "_correction_window", None)
+        if win is not None and win.isVisible():
+            win.raise_()
+            win.activateWindow()
+            return
+
+        text = corrections.get_last()
+        if not text:
+            self.showMessage(
+                "BlitzVox",
+                "Es wurde noch kein Text diktiert.",
+                QSystemTrayIcon.MessageIcon.Information,
+                3000,
+            )
+            return
+        # Referenz halten, sonst räumt Python das Fenster sofort weg
+        self._correction_window = CorrectionWindow(text)
+        self._correction_window.show()
+        self._correction_window.raise_()
+        self._correction_window.activateWindow()
 
     # ── Settings ──────────────────────────────────────────────────────────────
 

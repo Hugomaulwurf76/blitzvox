@@ -16,29 +16,37 @@ class STTError(Exception):
     pass
 
 
-async def transcribe(audio_path: Path, cfg: WorkflowModelConfig) -> str:
-    """Dispatch to the correct STT backend based on cfg.stt_provider."""
+async def transcribe(audio_path: Path, cfg: WorkflowModelConfig,
+                     prompt: str = "", keyterms: Optional[list] = None) -> str:
+    """
+    Dispatch to the correct STT backend based on cfg.stt_provider.
+    prompt: Hinweistext für Whisper (Stil/Schreibweise). Wird von OpenAI, Groq,
+            eigenem Endpunkt und lokalem faster-whisper genutzt; AssemblyAI und
+            OpenRouter ignorieren ihn.
+    keyterms: gelernte Schreibweisen; nur AssemblyAI (keyterms_prompt).
+    """
     provider = cfg.stt_provider
 
     if provider == STTProvider.OPENAI:
-        return await _transcribe_openai(audio_path, cfg)
+        return await _transcribe_openai(audio_path, cfg, prompt)
     elif provider == STTProvider.GROQ:
-        return await _transcribe_groq(audio_path, cfg)
+        return await _transcribe_groq(audio_path, cfg, prompt)
     elif provider == STTProvider.ASSEMBLYAI:
-        return await _transcribe_assemblyai(audio_path, cfg)
+        return await _transcribe_assemblyai(audio_path, cfg, keyterms or [])
     elif provider == STTProvider.LOCAL:
-        return await _transcribe_local(audio_path, cfg)
+        return await _transcribe_local(audio_path, cfg, prompt)
     elif provider == STTProvider.OPENROUTER:
         return await _transcribe_openrouter(audio_path, cfg)
     elif provider == STTProvider.CUSTOM:
-        return await _transcribe_custom(audio_path, cfg)
+        return await _transcribe_custom(audio_path, cfg, prompt)
     else:
         raise STTError(f"Unbekannter STT-Anbieter: {provider}")
 
 
 # ── OpenAI Whisper ────────────────────────────────────────────────────────────
 
-async def _transcribe_openai(audio_path: Path, cfg: WorkflowModelConfig) -> str:
+async def _transcribe_openai(audio_path: Path, cfg: WorkflowModelConfig,
+                             prompt: str = "") -> str:
     api_key = get_api_key(KEY_OPENAI)
     if not api_key:
         raise STTError("OpenAI API Key fehlt. Bitte in den Einstellungen hinterlegen.")
@@ -57,6 +65,8 @@ async def _transcribe_openai(audio_path: Path, cfg: WorkflowModelConfig) -> str:
             data   = {"model": model, "response_format": "text"}
             if lang:
                 data["language"] = lang
+            if prompt:
+                data["prompt"] = prompt
 
             resp = await client.post(
                 "https://api.openai.com/v1/audio/transcriptions",
@@ -73,7 +83,8 @@ async def _transcribe_openai(audio_path: Path, cfg: WorkflowModelConfig) -> str:
 
 # ── Groq Whisper ──────────────────────────────────────────────────────────────
 
-async def _transcribe_groq(audio_path: Path, cfg: WorkflowModelConfig) -> str:
+async def _transcribe_groq(audio_path: Path, cfg: WorkflowModelConfig,
+                           prompt: str = "") -> str:
     api_key = get_api_key(KEY_GROQ)
     if not api_key:
         raise STTError("Groq API Key fehlt. Bitte in den Einstellungen hinterlegen.")
@@ -92,6 +103,8 @@ async def _transcribe_groq(audio_path: Path, cfg: WorkflowModelConfig) -> str:
             data  = {"model": model, "response_format": "text"}
             if lang:
                 data["language"] = lang
+            if prompt:
+                data["prompt"] = prompt
 
             resp = await client.post(
                 "https://api.groq.com/openai/v1/audio/transcriptions",
@@ -108,7 +121,8 @@ async def _transcribe_groq(audio_path: Path, cfg: WorkflowModelConfig) -> str:
 
 # ── AssemblyAI ────────────────────────────────────────────────────────────────
 
-async def _transcribe_assemblyai(audio_path: Path, cfg: WorkflowModelConfig) -> str:
+async def _transcribe_assemblyai(audio_path: Path, cfg: WorkflowModelConfig,
+                                 keyterms: Optional[list] = None) -> str:
     api_key = get_api_key(KEY_ASSEMBLYAI)
     if not api_key:
         raise STTError("AssemblyAI API Key fehlt. Bitte in den Einstellungen hinterlegen.")
@@ -139,11 +153,26 @@ async def _transcribe_assemblyai(audio_path: Path, cfg: WorkflowModelConfig) -> 
         if lang_code:
             payload["language_code"] = lang_code
 
+        if keyterms:
+            # AssemblyAI erlaubt max. 6 Wörter pro Begriff
+            payload["keyterms_prompt"] = [
+                k for k in keyterms if len(k.split()) <= 6][:1000]
+
         tr = await client.post(
             "https://api.assemblyai.com/v2/transcript",
             json=payload,
             headers=headers,
         )
+        if tr.status_code != 200 and "keyterms_prompt" in payload:
+            # Modell/Sprache unterstützt keyterms nicht -> ohne erneut versuchen
+            payload.pop("keyterms_prompt")
+            tr = await client.post(
+                "https://api.assemblyai.com/v2/transcript",
+                json=payload,
+                headers=headers,
+            )
+        if tr.status_code != 200:
+            _raise_api_error("AssemblyAI", tr)
         transcript_id = tr.json()["id"]
 
         # 3. Poll
@@ -165,7 +194,8 @@ async def _transcribe_assemblyai(audio_path: Path, cfg: WorkflowModelConfig) -> 
 
 # ── Local faster-whisper ──────────────────────────────────────────────────────
 
-async def _transcribe_local(audio_path: Path, cfg: WorkflowModelConfig) -> str:
+async def _transcribe_local(audio_path: Path, cfg: WorkflowModelConfig,
+                            prompt: str = "") -> str:
     try:
         from faster_whisper import WhisperModel
     except ImportError:
@@ -182,7 +212,8 @@ async def _transcribe_local(audio_path: Path, cfg: WorkflowModelConfig) -> str:
 
     def _run() -> str:
         model = WhisperModel(model_size, device="cpu", compute_type="int8")
-        segments, _ = model.transcribe(str(audio_path), language=language)
+        segments, _ = model.transcribe(
+            str(audio_path), language=language, initial_prompt=prompt or None)
         return " ".join(s.text for s in segments).strip()
 
     loop = asyncio.get_event_loop()
@@ -233,7 +264,8 @@ async def _transcribe_openrouter(audio_path: Path, cfg: WorkflowModelConfig) -> 
 
 # ── Custom endpoint ───────────────────────────────────────────────────────────
 
-async def _transcribe_custom(audio_path: Path, cfg: WorkflowModelConfig) -> str:
+async def _transcribe_custom(audio_path: Path, cfg: WorkflowModelConfig,
+                             prompt: str = "") -> str:
     api_key = get_api_key(KEY_CUSTOM_STT)
     url     = cfg.custom_stt_url
     if not url:
@@ -250,12 +282,21 @@ async def _transcribe_custom(audio_path: Path, cfg: WorkflowModelConfig) -> str:
             data  = {"model": cfg.stt_model or "whisper-1", "response_format": "text"}
             if cfg.language:
                 data["language"] = cfg.language
+            if prompt:
+                data["prompt"] = prompt
 
             hdrs = {}
             if api_key:
                 hdrs["Authorization"] = f"Bearer {api_key}"
 
             resp = await client.post(url, headers=hdrs, files=files, data=data)
+
+            if resp.status_code != 200 and "prompt" in data:
+                # Endpunkt kennt "prompt" evtl. nicht -> ohne erneut senden
+                data.pop("prompt")
+                f.seek(0)
+                files = {"file": (audio_path.name, f, "audio/wav")}
+                resp = await client.post(url, headers=hdrs, files=files, data=data)
 
     if resp.status_code != 200:
         _raise_api_error("Custom STT", resp)

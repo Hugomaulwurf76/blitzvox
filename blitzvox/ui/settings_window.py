@@ -1,6 +1,6 @@
 """
 Settings window — tabbed UI.
-Tabs: API-Zugänge | Workflows | Hotkeys | Erweitert
+Tabs: API-Zugänge | Workflows | Hotkeys | Korrekturen | Erweitert
 """
 
 import platform
@@ -9,10 +9,14 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QTabWidget, QFormLayout, QComboBox, QCheckBox,
     QTextEdit, QGroupBox, QScrollArea, QSizePolicy, QFrame,
-    QSpinBox, QMessageBox,
+    QSpinBox, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView,
+    QGridLayout,
+    QAbstractItemView,
 )
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
 from PyQt6.QtGui import QFont, QKeySequence
+
+from .theme import set_prop
 
 from .. import __version__
 from ..services.settings import (
@@ -22,6 +26,16 @@ from ..services.settings import (
     KEY_OPENAI, KEY_GROQ, KEY_ANTHROPIC, KEY_ASSEMBLYAI, KEY_CUSTOM_STT, KEY_CUSTOM_LLM,
     KEY_OPENROUTER, fetch_openrouter_models, fetch_openrouter_transcription_models,
 )
+
+
+class NoWheelComboBox(QComboBox):
+    """Auswahlliste ohne Mausrad-Wechsel: Das Rad-Ereignis wird ignoriert und
+    an den Elternbereich (Scroll-Bereich) weitergereicht, damit die Seite
+    scrollt, statt versehentlich den Eintrag zu wechseln. Im aufgeklappten
+    Popup funktioniert das Mausrad weiterhin normal."""
+
+    def wheelEvent(self, event):
+        event.ignore()
 
 
 class HotkeyEdit(QLineEdit):
@@ -65,7 +79,7 @@ class SettingsWindow(QWidget):
         self._or_stt_models = []
         self._or_loader.transcription_loaded.connect(self._on_openrouter_transcription_models)
         self._setup_ui()
-        self.setWindowTitle(f"Blitztext – Einstellungen (v{__version__})")
+        self.setWindowTitle(f"BlitzVox – Einstellungen (v{__version__})")
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowCloseButtonHint)
         self.setMinimumWidth(620)
         self.setMinimumHeight(720)
@@ -78,12 +92,14 @@ class SettingsWindow(QWidget):
         tabs.addTab(self._tab_api(),       "🔑  API-Zugänge")
         tabs.addTab(self._tab_workflows(), "⚙  Workflows")
         tabs.addTab(self._tab_hotkeys(),   "⌨  Hotkeys")
+        tabs.addTab(self._tab_corrections(), "📝  Korrekturen")
         tabs.addTab(self._tab_advanced(),  "🔧  Erweitert")
         layout.addWidget(tabs)
 
         # Save / Cancel
         btn_row = QHBoxLayout()
-        btn_row.setContentsMargins(16, 8, 16, 16)
+        btn_row.setContentsMargins(20, 12, 20, 18)
+        btn_row.setSpacing(10)
         btn_row.addStretch()
 
         cancel = QPushButton("Abbrechen")
@@ -92,11 +108,7 @@ class SettingsWindow(QWidget):
 
         save = QPushButton("Speichern")
         save.setDefault(True)
-        save.setStyleSheet(
-            "QPushButton { background: #4a90d9; color: white; border-radius: 6px; "
-            "padding: 6px 20px; font-weight: bold; }"
-            "QPushButton:hover { background: #357abd; }"
-        )
+        set_prop(save, "variant", "primary")
         save.clicked.connect(self._save)
         btn_row.addWidget(save)
 
@@ -108,36 +120,34 @@ class SettingsWindow(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(20, 14, 20, 20)
         layout.setSpacing(14)
 
         def _key_row(label: str, key_name: str, placeholder: str = "sk-…") -> QWidget:
             grp = QGroupBox(label)
             g = QVBoxLayout(grp)
-            g.setSpacing(6)
-            g.setContentsMargins(10, 14, 10, 10)
+            g.setSpacing(8)
 
             current = get_api_key(key_name)
             display = QLabel(f"Gespeichert: {masked(current)}" if current else "Nicht gesetzt")
-            display.setStyleSheet("color: #888; font-size: 11px;")
+            set_prop(display, "role", "hint")
             g.addWidget(display)
 
             row = QHBoxLayout()
-            row.setSpacing(6)
+            row.setSpacing(8)
 
             field = QLineEdit()
             field.setPlaceholderText(placeholder)
             field.setEchoMode(QLineEdit.EchoMode.Password)
             field.setObjectName(f"key_{key_name}")
-            field.setMinimumHeight(30)
             row.addWidget(field, 1)
 
             show_btn = QPushButton("👁")
-            show_btn.setFixedWidth(36)
-            show_btn.setFixedHeight(30)
+            set_prop(show_btn, "variant", "icon")
             show_btn.setCheckable(True)
             show_btn.setToolTip("Schlüssel anzeigen / verbergen")
             show_btn.toggled.connect(
@@ -148,13 +158,11 @@ class SettingsWindow(QWidget):
             row.addWidget(show_btn)
 
             paste_btn = QPushButton("Einfügen")
-            paste_btn.setFixedHeight(30)
             paste_btn.setMinimumWidth(80)
             paste_btn.clicked.connect(lambda: self._paste_key(field))
             row.addWidget(paste_btn)
 
             clear_btn = QPushButton("Löschen")
-            clear_btn.setFixedHeight(30)
             clear_btn.setMinimumWidth(80)
             clear_btn.clicked.connect(lambda: self._clear_key(key_name, display, field))
             row.addWidget(clear_btn)
@@ -163,7 +171,7 @@ class SettingsWindow(QWidget):
             return grp
 
         groq_hint = QLabel("👉 Kostenlos starten: https://console.groq.com  (STT + LLM gratis)")
-        groq_hint.setStyleSheet("color: #27ae60; font-size: 11px; font-weight: bold;")
+        set_prop(groq_hint, "role", "lead")
         layout.addWidget(groq_hint)
 
         layout.addWidget(_key_row("Groq API Key (kostenlos, Standard)", KEY_GROQ, "gsk_…"))
@@ -215,13 +223,13 @@ class SettingsWindow(QWidget):
 
         or_model_grp = QGroupBox("OpenRouter – Modell")
         om = QFormLayout(or_model_grp)
-        self._or_model = QComboBox()
+        self._or_model = NoWheelComboBox()
         self._or_model.setEditable(True)
         self._or_model.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         if self.settings.openrouter_llm_model:
             self._or_model.addItem(self.settings.openrouter_llm_model)
         self._or_status = QLabel("Modelle werden geladen …")
-        self._or_status.setStyleSheet("color: #888; font-size: 11px;")
+        set_prop(self._or_status, "role", "hint")
         self._or_model.currentTextChanged.connect(self._refresh_openrouter_workflow_combos)
         om.addRow("Modell:", self._or_model)
         om.addRow("", self._or_status)
@@ -250,14 +258,16 @@ class SettingsWindow(QWidget):
     def _tab_workflows(self) -> QWidget:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(20, 14, 20, 20)
         layout.setSpacing(16)
 
         # ─ Transkription ─
-        tr_grp = QGroupBox("🎙  Blitztext — Transkription")
+        tr_grp = QGroupBox("🎙  BlitzVox — Transkription")
         tr = QFormLayout(tr_grp)
         self._tr_stt_provider = self._stt_combo(self.settings.transcription_model.stt_provider)
         self._tr_stt_model    = self._stt_model_combo(self._tr_stt_provider, self.settings.transcription_model.stt_model)
@@ -267,8 +277,8 @@ class SettingsWindow(QWidget):
         tr.addRow("Sprache (BCP-47):", self._tr_language)
         layout.addWidget(tr_grp)
 
-        # ─ Blitztext+ ─
-        ti_grp = QGroupBox("✨  Blitztext+ — Text verbessern")
+        # ─ BlitzVox+ ─
+        ti_grp = QGroupBox("✨  BlitzVox+ — Text verbessern")
         ti = QFormLayout(ti_grp)
         self._ti_stt_provider = self._stt_combo(self.settings.text_improvement.model.stt_provider)
         self._ti_stt_model    = self._stt_model_combo(self._ti_stt_provider, self.settings.text_improvement.model.stt_model)
@@ -276,7 +286,7 @@ class SettingsWindow(QWidget):
         self._ti_llm_model    = self._llm_model_combo(
             self._ti_llm_provider, self.settings.text_improvement.model.llm_model
         )
-        self._ti_tone         = QComboBox()
+        self._ti_tone         = NoWheelComboBox()
         for val, lbl in [("formal","Formell"),("neutral","Neutral"),("casual","Locker")]:
             self._ti_tone.addItem(lbl, val)
         self._ti_tone.setCurrentIndex(
@@ -296,7 +306,7 @@ class SettingsWindow(QWidget):
         layout.addWidget(ti_grp)
 
         # ─ Dampf ablassen ─
-        da_grp = QGroupBox("🔥  Blitztext $%&! — Frust umformulieren")
+        da_grp = QGroupBox("🔥  BlitzVox $%&! — Frust umformulieren")
         da = QFormLayout(da_grp)
         self._da_stt_provider = self._stt_combo(self.settings.dampf_ablassen.model.stt_provider)
         self._da_stt_model    = self._stt_model_combo(self._da_stt_provider, self.settings.dampf_ablassen.model.stt_model)
@@ -314,7 +324,7 @@ class SettingsWindow(QWidget):
         layout.addWidget(da_grp)
 
         # ─ Emoji ─
-        em_grp = QGroupBox("😊  Blitztext :) — Emojis")
+        em_grp = QGroupBox("😊  BlitzVox :) — Emojis")
         em = QFormLayout(em_grp)
         self._em_stt_provider = self._stt_combo(self.settings.emoji.model.stt_provider)
         self._em_stt_model    = self._stt_model_combo(self._em_stt_provider, self.settings.emoji.model.stt_model)
@@ -322,7 +332,7 @@ class SettingsWindow(QWidget):
         self._em_llm_model    = self._llm_model_combo(
             self._em_llm_provider, self.settings.emoji.model.llm_model
         )
-        self._em_density      = QComboBox()
+        self._em_density      = NoWheelComboBox()
         for val, lbl in [("wenig","Wenig"),("mittel","Mittel"),("viel","Viel")]:
             self._em_density.addItem(lbl, val)
         self._em_density.setCurrentIndex(
@@ -341,13 +351,16 @@ class SettingsWindow(QWidget):
 
     def _stt_model_combo(self, provider_combo: QComboBox, current_model: str) -> QComboBox:
         """Editierbares STT-Modellfeld. Bei OpenRouter kommt die Liste von der API."""
-        cb = QComboBox()
+        cb = NoWheelComboBox()
         cb.setEditable(True)
         cb.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self._stt_model_combos.append((cb, provider_combo))
         self._fill_stt_models(cb, provider_combo.currentData(), current_model)
+        # currentIndexChanged feuert nur bei echtem Anbieterwechsel, nicht beim
+        # bloßen Aufklappen oder erneuten Wählen desselben Eintrags.
+        # Bei Wechsel wird das Modellfeld geleert.
         provider_combo.currentIndexChanged.connect(
-            lambda: self._fill_stt_models(cb, provider_combo.currentData(), cb.currentText())
+            lambda: self._fill_stt_models(cb, provider_combo.currentData(), "")
         )
         return cb
 
@@ -370,7 +383,7 @@ class SettingsWindow(QWidget):
                 self._fill_stt_models(cb, STTProvider.OPENROUTER, cb.currentText())
 
     def _stt_combo(self, current: str) -> QComboBox:
-        cb = QComboBox()
+        cb = NoWheelComboBox()
         for val in STTProvider.ALL:
             cb.addItem(STTProvider.DISPLAY[val], val)
         idx = STTProvider.ALL.index(current) if current in STTProvider.ALL else 0
@@ -378,7 +391,7 @@ class SettingsWindow(QWidget):
         return cb
 
     def _llm_combo(self, current: str) -> QComboBox:
-        cb = QComboBox()
+        cb = NoWheelComboBox()
         for val in LLMProvider.ALL:
             cb.addItem(LLMProvider.DISPLAY[val], val)
         idx = LLMProvider.ALL.index(current) if current in LLMProvider.ALL else 0
@@ -389,13 +402,14 @@ class SettingsWindow(QWidget):
         """Editierbare Auswahlliste fuer das LLM-Modell, Vorschlaege richten sich
         nach dem aktuell gewaehlten LLM-Anbieter. Eigene Modellnamen bleiben
         weiterhin moeglich (Feld ist editierbar)."""
-        cb = QComboBox()
+        cb = NoWheelComboBox()
         cb.setEditable(True)
         cb.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self._llm_model_combos.append((cb, provider_combo))
         self._fill_llm_models(cb, provider_combo.currentData(), current_model)
+        # Nur bei echtem Anbieterwechsel feuern; dann Modellfeld leeren.
         provider_combo.currentIndexChanged.connect(
-            lambda: self._fill_llm_models(cb, provider_combo.currentData(), cb.currentText())
+            lambda: self._fill_llm_models(cb, provider_combo.currentData(), "")
         )
         return cb
 
@@ -408,8 +422,6 @@ class SettingsWindow(QWidget):
             cb.setEnabled(False)
             cb.setToolTip("Wird im Tab API-Zugänge unter 'OpenRouter – Modell' gewählt.")
         else:
-            if not cb.isEnabled():
-                keep_text = ""  # altes OpenRouter-Modell nicht in andere Anbieter übernehmen
             cb.setEnabled(True)
             cb.setToolTip("")
             cb.addItems(LLM_MODEL_PRESETS.get(provider, []))
@@ -424,66 +436,233 @@ class SettingsWindow(QWidget):
     # ── Tab: Hotkeys ─────────────────────────────────────────────────────────
 
     def _tab_hotkeys(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(20, 14, 20, 20)
         layout.setSpacing(14)
 
-        note = QLabel(
-            "Format: ctrl+shift+r  |  alt+f1  |  ctrl+alt+t\n"
-            "Halten = Taste gedrückt halten, beim Loslassen wird übernommen.\n"
-            "Umschalten = einmal drücken startet, nochmal drücken stoppt."
+        intro = QLabel(
+            "Mit Tastenkürzeln startest du BlitzVox aus jedem Programm heraus, "
+            "ohne ein Fenster zu öffnen. Mit Auto-Paste (Tab Erweitert) landet der "
+            "Text dort, wo der Cursor steht, sonst in der Zwischenablage."
         )
-        note.setStyleSheet("color: #888; font-size: 11px;")
-        note.setWordWrap(True)
-        layout.addWidget(note)
+        set_prop(intro, "role", "lead")
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
 
         self._hk_enabled = QCheckBox("Globale Hotkeys aktivieren")
         self._hk_enabled.setChecked(self.settings.hotkeys.enabled)
         layout.addWidget(self._hk_enabled)
 
+        hk_note = QLabel(
+            "Ist der Haken gesetzt, funktionieren die Tastenkürzel unten in jedem "
+            "Programm. Ohne Haken reagiert BlitzVox auf kein Tastenkürzel – auch "
+            "nicht auf „Korrigieren“. Die Workflows erreichst du dann nur über das "
+            "BlitzVox-Symbol im Tray. Die Änderung gilt sofort nach „Speichern“."
+        )
+        set_prop(hk_note, "role", "hint")
+        hk_note.setWordWrap(True)
+        layout.addWidget(hk_note)
+
         def _mode_combo(current: str) -> QComboBox:
-            cb = QComboBox()
+            cb = NoWheelComboBox()
             cb.addItem("Halten", "hold")
             cb.addItem("Umschalten", "toggle")
             cb.setCurrentIndex(0 if current == "hold" else 1)
             return cb
 
-        def _row(label: str, key_field: QLineEdit, mode_combo: QComboBox) -> QWidget:
-            box = QGroupBox(label)
-            form = QFormLayout(box)
-            form.addRow("Tastenkürzel:", key_field)
-            form.addRow("Modus:", mode_combo)
-            return box
-
         self._hk_transcription    = HotkeyEdit(self.settings.hotkeys.transcription)
         self._hk_text_improvement = HotkeyEdit(self.settings.hotkeys.text_improvement)
         self._hk_dampf_ablassen   = HotkeyEdit(self.settings.hotkeys.dampf_ablassen)
         self._hk_emoji_text       = HotkeyEdit(self.settings.hotkeys.emoji_text)
+        self._hk_correction       = HotkeyEdit(self.settings.hotkeys.correction)
 
         self._hk_transcription_mode    = _mode_combo(self.settings.hotkeys.transcription_mode)
         self._hk_text_improvement_mode = _mode_combo(self.settings.hotkeys.text_improvement_mode)
         self._hk_dampf_ablassen_mode   = _mode_combo(self.settings.hotkeys.dampf_ablassen_mode)
         self._hk_emoji_text_mode       = _mode_combo(self.settings.hotkeys.emoji_text_mode)
 
-        layout.addWidget(_row("🎙  Blitztext — kurze Texte",
-                              self._hk_transcription, self._hk_transcription_mode))
-        layout.addWidget(_row("✨  Blitztext+ — lange Texte / freies Sprechen",
-                              self._hk_text_improvement, self._hk_text_improvement_mode))
-        layout.addWidget(_row("🔥  Blitztext $%&! — Frust umformulieren",
-                              self._hk_dampf_ablassen, self._hk_dampf_ablassen_mode))
-        layout.addWidget(_row("😊  Blitztext :) — mit Emojis",
-                              self._hk_emoji_text, self._hk_emoji_text_mode))
+        box = QGroupBox("Tastenkürzel")
+        grid = QGridLayout(box)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(10)
+        grid.setColumnStretch(1, 3)
+        grid.setColumnStretch(2, 2)
 
+        for col, text in enumerate(("Workflow", "Tastenkürzel", "Modus")):
+            head = QLabel(text)
+            set_prop(head, "role", "label")
+            grid.addWidget(head, 0, col)
+
+        rows = [
+            ("🎙  BlitzVox",        "kurze Texte",
+             self._hk_transcription, self._hk_transcription_mode),
+            ("✨  BlitzVox+",       "lange Texte / freies Sprechen",
+             self._hk_text_improvement, self._hk_text_improvement_mode),
+            ("🔥  BlitzVox $%&!",   "Frust umformulieren",
+             self._hk_dampf_ablassen, self._hk_dampf_ablassen_mode),
+            ("😊  BlitzVox :)",     "mit Emojis",
+             self._hk_emoji_text, self._hk_emoji_text_mode),
+            ("✏  Korrigieren",       "Fenster für letzten Text öffnen",
+             self._hk_correction, None),
+        ]
+        for r, (name, desc, key_field, mode_combo) in enumerate(rows, start=1):
+            label = QLabel(name)
+            label.setToolTip(desc)
+            grid.addWidget(label, r, 0)
+            grid.addWidget(key_field, r, 1)
+            if mode_combo is not None:
+                grid.addWidget(mode_combo, r, 2)
+            else:
+                dash = QLabel("—")
+                set_prop(dash, "role", "hint")
+                grid.addWidget(dash, r, 2)
+
+        help_text = QLabel(
+            "<b>Hotkeys ändern:</b> Ins Feld klicken und die gewünschte Kombination drücken, "
+            "z.&nbsp;B. Strg+Alt+W (wird als ctrl+alt+w angezeigt). "
+            "Entf oder Rücktaste leert das Feld.<br>"
+            "<b>Halten:</b> Kombination gedrückt halten, solange du sprichst. "
+            "Beim Loslassen endet die Aufnahme und der Text wird verarbeitet.<br>"
+            "<b>Umschalten:</b> Einmal drücken startet die Aufnahme, "
+            "nochmal drücken stoppt sie.<br>"
+            "Änderungen gelten nach „Speichern“."
+        )
+        set_prop(help_text, "role", "hint")
+        help_text.setWordWrap(True)
+        help_text.setTextFormat(Qt.TextFormat.RichText)
+        grid.addWidget(help_text, len(rows) + 1, 0, 1, 3)
+
+        # Tabelle ausgrauen, wenn Hotkeys deaktiviert sind
+        box.setEnabled(self._hk_enabled.isChecked())
+        self._hk_enabled.toggled.connect(box.setEnabled)
+
+        layout.addWidget(box)
         layout.addStretch()
+        scroll.setWidget(w)
+        return scroll
+
+    # ── Tab: Korrekturen ─────────────────────────────────────────────────────
+
+    def _tab_corrections(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(20, 14, 20, 20)
+        layout.setSpacing(12)
+
+        # ─ Satzzeichen ─
+        punct_grp = QGroupBox("Satzzeichen")
+        pg = QVBoxLayout(punct_grp)
+        self._spoken_punct = QCheckBox(
+            "Satzzeichen per Sprachmodell setzen (inkl. diktierter Befehle)")
+        self._spoken_punct.setChecked(self.settings.spoken_punctuation)
+        pg.addWidget(self._spoken_punct)
+        pnote = QLabel(
+            "Befehle: Komma, Punkt, Fragezeichen, Ausrufezeichen, Doppelpunkt, "
+            "Semikolon, Bindestrich, Gedankenstrich, neue Zeile, neuer Absatz, "
+            "Klammer auf/zu, Anführungszeichen auf/zu.\n"
+            "Bei „BlitzVox“ (reine Transkription) wird dafür bei jedem Diktat das "
+            "Sprachmodell aus „BlitzVox+“ aufgerufen. Ist es nicht erreichbar, "
+            "greifen einfache Regeln."
+        )
+        pnote.setWordWrap(True)
+        set_prop(pnote, "role", "hint")
+        pg.addWidget(pnote)
+        layout.addWidget(punct_grp)
+
+        # ─ Gelernte Korrekturen ─
+        corr_grp = QGroupBox("Gelernte Korrekturen")
+        cg = QVBoxLayout(corr_grp)
+        cnote = QLabel(
+            "Werden nach der Erkennung ersetzt; die richtige Schreibweise geht "
+            "außerdem als Hinweis an die Spracherkennung. Neue Einträge entstehen "
+            "über „Letzten Text korrigieren …“ im Tray-Menü oder hier. "
+            "Änderungen in dieser Liste werden sofort gespeichert."
+        )
+        cnote.setWordWrap(True)
+        set_prop(cnote, "role", "hint")
+        cg.addWidget(cnote)
+
+        self._corr_table = QTableWidget(0, 2)
+        self._corr_table.setHorizontalHeaderLabels(["Erkannt (falsch)", "Ersetzen durch"])
+        self._corr_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch)
+        self._corr_table.verticalHeader().setVisible(False)
+        self._corr_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._corr_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._corr_table.setMinimumHeight(180)
+        cg.addWidget(self._corr_table)
+
+        add_row = QHBoxLayout()
+        self._corr_wrong = QLineEdit()
+        self._corr_wrong.setPlaceholderText("falsch, z. B. Proxmocks")
+        self._corr_right = QLineEdit()
+        self._corr_right.setPlaceholderText("richtig, z. B. Proxmox")
+        add_btn = QPushButton("Hinzufügen")
+        set_prop(add_btn, "variant", "primary")
+        add_btn.clicked.connect(self._corr_add)
+        add_row.addWidget(self._corr_wrong)
+        add_row.addWidget(self._corr_right)
+        add_row.addWidget(add_btn)
+        cg.addLayout(add_row)
+
+        del_btn = QPushButton("Ausgewählte löschen")
+        del_btn.clicked.connect(self._corr_delete)
+        cg.addWidget(del_btn, alignment=Qt.AlignmentFlag.AlignRight)
+
+        layout.addWidget(corr_grp)
+        layout.addStretch()
+
+        self._corr_reload()
         return w
+
+    def _corr_reload(self) -> None:
+        from ..services import corrections
+        reps = corrections.load()["replacements"]
+        self._corr_table.setRowCount(0)
+        for wrong in sorted(reps, key=str.lower):
+            row = self._corr_table.rowCount()
+            self._corr_table.insertRow(row)
+            self._corr_table.setItem(row, 0, QTableWidgetItem(wrong))
+            self._corr_table.setItem(row, 1, QTableWidgetItem(reps[wrong]))
+
+    def _corr_add(self) -> None:
+        from ..services import corrections
+        wrong = self._corr_wrong.text().strip()
+        right = self._corr_right.text().strip()
+        if not wrong or not right:
+            return
+        if wrong.lower() == right.lower():
+            QMessageBox.information(
+                self, "BlitzVox",
+                "Falsch und richtig unterscheiden sich nur in der Groß-/Kleinschreibung. "
+                "Das regelt das Sprachmodell, dafür ist kein Eintrag nötig.")
+            return
+        corrections.add_replacement(wrong, right)
+        self._corr_wrong.clear()
+        self._corr_right.clear()
+        self._corr_reload()
+
+    def _corr_delete(self) -> None:
+        from ..services import corrections
+        rows = sorted({i.row() for i in self._corr_table.selectedIndexes()})
+        for row in rows:
+            item = self._corr_table.item(row, 0)
+            if item:
+                corrections.remove_replacement(item.text())
+        self._corr_reload()
 
     # ── Tab: Erweitert ───────────────────────────────────────────────────────
 
     def _tab_advanced(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(20, 14, 20, 20)
         layout.setSpacing(12)
 
         self._auto_paste = QCheckBox("Text automatisch in fokussiertes Fenster einfügen")
@@ -495,7 +674,7 @@ class SettingsWindow(QWidget):
             "bzw. pyautogui (Windows).\n"
             "Ohne Auto-Paste landet der Text nur in der Zwischenablage."
         )
-        note.setStyleSheet("color: #888; font-size: 11px;")
+        set_prop(note, "role", "hint")
         note.setWordWrap(True)
         layout.addWidget(note)
 
@@ -506,7 +685,7 @@ class SettingsWindow(QWidget):
         # ─ Mikrofon-Auswahl ─
         mic_grp = QGroupBox("🎤  Mikrofon")
         mf = QFormLayout(mic_grp)
-        self._mic_combo = QComboBox()
+        self._mic_combo = NoWheelComboBox()
         self._mic_combo.addItem("System-Standard", None)
 
         try:
@@ -528,27 +707,10 @@ class SettingsWindow(QWidget):
         mf.addRow("Aufnahmegerät:", self._mic_combo)
         layout.addWidget(mic_grp)
 
-        sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.HLine)
-        layout.addWidget(sep)
-
-        groq_grp = QGroupBox("Groq – Standardmodelle")
-        gf = QFormLayout(groq_grp)
-        self._groq_stt = QLineEdit(self.settings.groq_stt_model)
-        self._groq_stt.setPlaceholderText("whisper-large-v3-turbo")
-        self._groq_llm = QComboBox()
-        self._groq_llm.setEditable(True)
-        self._groq_llm.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self._groq_llm.addItems(LLM_MODEL_PRESETS.get(LLMProvider.GROQ, []))
-        self._groq_llm.setEditText(self.settings.groq_llm_model)
-        gf.addRow("STT-Modell:", self._groq_stt)
-        gf.addRow("LLM-Modell:", self._groq_llm)
-        layout.addWidget(groq_grp)
-
-        version_grp = QGroupBox("ℹ️  Über Blitztext")
+        version_grp = QGroupBox("ℹ️  Über BlitzVox")
         vf = QFormLayout(version_grp)
         version_label = QLabel(f"Version {__version__}")
-        version_label.setStyleSheet("font-weight: bold;")
+        set_prop(version_label, "role", "strong")
         vf.addRow("Aktuelle Version:", version_label)
         layout.addWidget(version_grp)
 
@@ -617,7 +779,7 @@ class SettingsWindow(QWidget):
         s.transcription_model.stt_model    = self._tr_stt_model.currentText().strip()
         s.transcription_model.language     = self._tr_language.text().strip()
 
-        # Blitztext+
+        # BlitzVox+
         s.text_improvement.model.stt_provider = self._ti_stt_provider.currentData()
         s.text_improvement.model.stt_model    = self._ti_stt_model.currentText().strip()
         s.text_improvement.model.llm_provider = self._ti_llm_provider.currentData()
@@ -650,9 +812,11 @@ class SettingsWindow(QWidget):
         s.hotkeys.dampf_ablassen_mode   = self._hk_dampf_ablassen_mode.currentData()
         s.hotkeys.emoji_text_mode       = self._hk_emoji_text_mode.currentData()
         s.hotkeys.enabled               = self._hk_enabled.isChecked()
+        s.hotkeys.correction            = self._hk_correction.text().strip()
 
         # Advanced
         s.auto_paste              = self._auto_paste.isChecked()
+        s.spoken_punctuation      = self._spoken_punct.isChecked()
 
         # Autostart: Registry-Eintrag setzen oder entfernen
         s.launch_at_login = self._launch_at_login.isChecked()
@@ -662,12 +826,10 @@ class SettingsWindow(QWidget):
         except Exception as e:
             from PyQt6.QtWidgets import QMessageBox
             QMessageBox.warning(
-                self, "Blitztext",
+                self, "BlitzVox",
                 f"Der Autostart-Eintrag konnte nicht geändert werden:\n{e}",
             )
         s.audio_input_device      = self._mic_combo.currentData()
-        s.groq_stt_model          = self._groq_stt.text().strip()
-        s.groq_llm_model          = self._groq_llm.currentText().strip()
 
         save_settings(s)
         self.settings_saved.emit(s)

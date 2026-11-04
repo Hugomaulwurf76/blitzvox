@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .services.recorder import AudioRecorder, is_too_short
-from .services import stt, llm, paste
+from .services import stt, llm, paste, corrections
 from .services.settings import (
     AppSettings,
     WorkflowModelConfig,
@@ -139,7 +139,11 @@ class WorkflowRunner:
             # ── Step 1: Transcribe ────────────────────────────────────────────
             self._set_phase(Phase.TRANSCRIBING, "Wird transkribiert …")
             cfg = self._get_stt_config()
-            text = await stt.transcribe(audio_path, cfg)
+            # Hinweise an die Erkennung: Satzzeichen-Befehle + gelernte Wörter
+            stt_prompt = corrections.build_stt_prompt(self.settings.spoken_punctuation)
+            text = await stt.transcribe(
+                audio_path, cfg, prompt=stt_prompt,
+                keyterms=corrections.get_vocabulary())
 
             try:
                 audio_path.unlink(missing_ok=True)
@@ -147,26 +151,49 @@ class WorkflowRunner:
                 pass
 
             text = stt.clean_transcript(text)
-            if stt.is_likely_artifact(text, duration):
+            if stt.is_likely_artifact(text, duration) or (
+                    stt_prompt and corrections.is_prompt_echo(text, stt_prompt)):
                 self._set_phase(Phase.ERROR, "Keine Sprache erkannt.")
                 return
 
-            # ── Step 2: Optional LLM pass ─────────────────────────────────────
-            if self.kind == WorkflowKind.TEXT_IMPROVE:
+            # ── Step 1b: Korrektur-Wörterbuch ─────────────────────────────────
+            text = corrections.apply_replacements(text)
+
+            # Diktierte Satzzeichen-Befehle im Text?
+            punct = (self.settings.spoken_punctuation
+                     and corrections.has_spoken_punctuation(text))
+
+            # ── Step 2: LLM pass ──────────────────────────────────────────────
+            if self.kind == WorkflowKind.TRANSCRIPTION:
+                # Whisper setzt wegen des Hinweis-Prompts kaum eigene Zeichen ->
+                # LLM setzt Satzzeichen/Großschreibung bei JEDER Transkription.
+                if self.settings.spoken_punctuation:
+                    self._set_phase(Phase.REWRITING, "Satzzeichen werden gesetzt …")
+                    text = await self._punctuate(text)
+                    punct = True  # Aufräumen der Zeichen unten aktivieren
+
+            elif self.kind == WorkflowKind.TEXT_IMPROVE:
                 self._set_phase(Phase.REWRITING, "Text wird verbessert …")
-                text = await llm.improve_text(text, self.settings.text_improvement)
+                text = await llm.improve_text(
+                    text, self.settings.text_improvement, punctuation=punct)
 
             elif self.kind == WorkflowKind.DAMPF_ABLASSEN:
                 self._set_phase(Phase.REWRITING, "Wird umformuliert …")
-                text = await llm.dampf_ablassen(text, self.settings.dampf_ablassen)
+                text = await llm.dampf_ablassen(
+                    text, self.settings.dampf_ablassen, punctuation=punct)
 
             elif self.kind == WorkflowKind.EMOJI_TEXT:
                 self._set_phase(Phase.REWRITING, "Emojis werden eingefügt …")
-                text = await llm.add_emojis(text, self.settings.emoji)
+                text = await llm.add_emojis(
+                    text, self.settings.emoji, punctuation=punct)
+
+            if punct:
+                text = corrections.tidy_punctuation(text)
 
             # ── Step 3: Output ─────────────────────────────────────────────────
             # Clipboard + Paste passieren im UI-Hauptthread (siehe workflow_window),
             # da Qt-Clipboard und Windows-COM nur dort sicher funktionieren.
+            corrections.set_last(text)   # für "Letzten Text korrigieren"
             self._set_phase(Phase.DONE, text)
             if self.on_output:
                 self.on_output(text)
@@ -175,6 +202,25 @@ class WorkflowRunner:
             self._set_phase(Phase.IDLE, "")
         except Exception as exc:
             self._set_phase(Phase.ERROR, str(exc))
+
+    async def _punctuate(self, text: str) -> str:
+        """
+        Satzzeichen per LLM (beachtet den Satzbau). Fallback auf Regeln, wenn
+        das LLM nicht erreichbar ist oder mehr als die Befehle verändert hat.
+        """
+        try:
+            # Die Transkription hat in den Einstellungen keine eigene
+            # LLM-Auswahl -> Sprachmodell aus "Text verbessern" verwenden.
+            cfg = self.settings.text_improvement.model
+            out = corrections.tidy_punctuation(
+                await llm.convert_punctuation(text, cfg))
+            if corrections.llm_output_is_safe(text, out):
+                return out
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            pass  # LLM nicht erreichbar -> Regeln
+        return corrections.apply_spoken_punctuation(text)
 
     # ── Config helpers ────────────────────────────────────────────────────────
 

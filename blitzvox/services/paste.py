@@ -1,7 +1,7 @@
 """
 Clipboard + auto-paste.
 
-Windows-Strategie: Das Blitztext-Fenster nimmt keinen Fokus (WindowDoesNotAcceptFocus),
+Windows-Strategie: Das BlitzVox-Fenster nimmt keinen Fokus (WindowDoesNotAcceptFocus),
 daher bleibt das Zielfenster fokussiert. Zusaetzlich wird per AttachThreadInput die
 Fokus-Sperre umgangen und Ctrl+V via keybd_event (echte Eingabe-Events) gesendet.
 """
@@ -26,7 +26,7 @@ _saved_hwnd = None
 
 
 def save_focus() -> None:
-    """Vor dem Oeffnen des Blitztext-Fensters aufrufen — speichert aktives Fenster."""
+    """Vor dem Oeffnen des BlitzVox-Fensters aufrufen — speichert aktives Fenster."""
     global _saved_hwnd
     system = platform.system()
     if system == "Windows":
@@ -45,7 +45,7 @@ def save_focus() -> None:
             )
             win_id = result.stdout.strip()
             if win_id:
-                os.environ["_BLITZTEXT_PREV_WIN"] = win_id
+                os.environ["_BLITZVOX_PREV_WIN"] = win_id
         except Exception:
             pass
 
@@ -68,7 +68,7 @@ def paste_to_focused_window(text: str) -> bool:
 def _paste_windows() -> bool:
     user32 = ctypes.windll.user32
 
-    # Fokus wurde durch hide() des Blitztext-Fensters bereits ans Zielfenster
+    # Fokus wurde durch hide() des BlitzVox-Fensters bereits ans Zielfenster
     # zurueckgegeben. Nur noch Ctrl+V als echte Eingabe-Events senden.
     try:
         VK_CONTROL = 0x11
@@ -127,7 +127,7 @@ def _paste_linux() -> bool:
 def _paste_via_xdotool() -> bool:
     try:
         import os
-        win_id = os.environ.get("_BLITZTEXT_PREV_WIN")
+        win_id = os.environ.get("_BLITZVOX_PREV_WIN")
         if win_id:
             subprocess.run(
                 ["xdotool", "windowactivate", "--sync", win_id],
