@@ -95,8 +95,8 @@ Jeden Workflow kannst du **unabhängig** konfigurieren — z.B. BlitzVox mit Gro
 
 ### Windows 11 (aus dem Quellcode)
 ```cmd
-git clone https://github.com/Hugomaulwurf76/blitztext.git
-cd blitztext
+git clone https://github.com/Hugomaulwurf76/blitzvox.git
+cd blitzvox
 install_windows.bat
 start.bat
 ```
@@ -117,8 +117,8 @@ Im Ordner `BlitzVoxEXE`:
 
 ### Linux (Debian/Ubuntu)
 ```bash
-git clone https://github.com/Hugomaulwurf76/blitztext.git
-cd blitztext
+git clone https://github.com/Hugomaulwurf76/blitzvox.git
+cd blitzvox
 chmod +x install_linux.sh
 ./install_linux.sh
 ./start.sh
