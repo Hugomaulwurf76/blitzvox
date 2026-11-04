@@ -1,11 +1,11 @@
 """
-Autostart fuer Blitztext.
+Autostart fuer BlitzVox.
 
 Windows: Eintrag unter HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run (keine Adminrechte).
-Linux:   Desktop-Datei ~/.config/autostart/blitztext.desktop (XDG-Standard).
+Linux:   Desktop-Datei ~/.config/autostart/blitzvox.desktop (XDG-Standard).
 Andere Systeme: keine Funktion.
 
-Zieldatei: blitztext/services/autostart.py
+Zieldatei: blitzvox/services/autostart.py
 """
 
 import os
@@ -14,8 +14,8 @@ import sys
 from pathlib import Path
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-VALUE_NAME = "Blitztext"
-DESKTOP_FILE = "blitztext.desktop"
+VALUE_NAME = "BlitzVox"
+DESKTOP_FILE = "blitzvox.desktop"
 
 _MAIN = Path(__file__).resolve().parents[2] / "main.py"
 
@@ -89,7 +89,7 @@ def _linux_set_enabled(enabled: bool) -> None:
         path.write_text(
             "[Desktop Entry]\n"
             "Type=Application\n"
-            "Name=Blitztext\n"
+            "Name=BlitzVox\n"
             f"Exec={_linux_exec()}\n"
             "Terminal=false\n"
             "X-GNOME-Autostart-enabled=true\n",

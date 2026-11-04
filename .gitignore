@@ -14,5 +14,5 @@ start.sh
 blitztext-cross.zip
 
 # Build-Ordner des Entwicklers (nicht im Repo)
-BlitztextEXE/
-BlitztextDEB/
+BlitzVoxEXE/
+BlitzVoxDEB/

@@ -17,18 +17,67 @@ class LLMError(Exception):
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-async def improve_text(text: str, settings: TextImprovementSettings) -> str:
+async def improve_text(text: str, settings: TextImprovementSettings,
+                       punctuation: bool = False) -> str:
     system = _build_improve_prompt(settings)
+    if punctuation:
+        system += PUNCTUATION_HINT
     return await _complete(text, system, settings.model)
 
 
-async def dampf_ablassen(text: str, settings: DampfAblassenSettings) -> str:
-    return await _complete(text, settings.system_prompt, settings.model, temperature=0.4)
+async def dampf_ablassen(text: str, settings: DampfAblassenSettings,
+                         punctuation: bool = False) -> str:
+    system = settings.system_prompt
+    if punctuation:
+        system += PUNCTUATION_HINT
+    return await _complete(text, system, settings.model, temperature=0.4)
 
 
-async def add_emojis(text: str, settings: EmojiSettings) -> str:
+async def add_emojis(text: str, settings: EmojiSettings,
+                     punctuation: bool = False) -> str:
     system = _build_emoji_prompt(settings.density)
+    if punctuation:
+        system += PUNCTUATION_HINT
     return await _complete(text, system, settings.model)
+
+
+async def convert_punctuation(text: str, cfg: WorkflowModelConfig) -> str:
+    """Nur diktierte Satzzeichen-Befehle umsetzen, sonst nichts ändern."""
+    return await _complete(text, PUNCTUATION_PROMPT, cfg, temperature=0.0)
+
+
+# ── Diktierte Satzzeichen ─────────────────────────────────────────────────────
+
+_PUNCTUATION_RULES = (
+    "Das Transkript kann gesprochene Satzzeichen-Befehle enthalten: "
+    "Komma (,), Punkt (.), Fragezeichen (?), Ausrufezeichen (!), Doppelpunkt (:), "
+    "Semikolon oder Strichpunkt (;), Bindestrich (-), Gedankenstrich (–), "
+    "Auslassungspunkte (…), Klammer auf ((), Klammer zu ()), "
+    "Anführungszeichen auf oder unten („), Anführungszeichen zu oder oben (“), "
+    "neue Zeile (Zeilenumbruch), neuer Absatz (Leerzeile).\n"
+    "Entscheide anhand von Satzbau und Grammatik, ob ein solches Wort als Befehl "
+    "gemeint ist oder als normales Wort im Satz. Beispiele für normale Wörter, "
+    "die stehen bleiben: \"Mir fehlt das Komma\", \"ein wichtiger Punkt\", "
+    "\"Punkt 12 Uhr\", \"eine neue Zeile im Gedicht\". "
+    "Ersetze nur echte Befehle durch das Zeichen. Entferne dabei automatisch "
+    "gesetzte Satzzeichen direkt am Befehl, damit nichts doppelt steht."
+)
+
+PUNCTUATION_HINT = "\n\n" + _PUNCTUATION_RULES
+
+PUNCTUATION_PROMPT = (
+    "Du erhältst ein diktiertes Transkript, oft ganz ohne Satzzeichen.\n"
+    + _PUNCTUATION_RULES + "\n"
+    "Setze außerdem überall die fehlenden Satzzeichen nach den Regeln der deutschen "
+    "Rechtschreibung (Punkt, Komma, Fragezeichen usw.) und korrigiere die "
+    "Groß- und Kleinschreibung (Satzanfänge, Nomen, nominalisierte Wörter wie "
+    "\"etwas Leckeres\").\n"
+    "Setze Bindestriche in Zusammensetzungen mit Abkürzungen, Buchstaben oder "
+    "Ziffern (z. B. SCSI-Festplatte, USB-Stick, E-Mail, 3-Zimmer-Wohnung).\n"
+    "Ändere sonst NICHTS: keine Wörter hinzufügen, entfernen, umstellen, ersetzen "
+    "oder umformulieren, auch keine Umgangssprache glätten. "
+    "Gib NUR den Text zurück, ohne Anführungszeichen drumherum und ohne Erklärungen."
+)
 
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
@@ -119,6 +168,13 @@ async def _anthropic(text, system, cfg: WorkflowModelConfig, temp: float) -> str
             headers=headers,
             json=payload,
         )
+        if _rejects_temperature(resp):
+            payload.pop("temperature", None)
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers=headers,
+                json=payload,
+            )
 
     if resp.status_code != 200:
         try:
@@ -185,6 +241,14 @@ async def _custom(text, system, cfg: WorkflowModelConfig, temp: float) -> str:
 
 # ── Shared HTTP (OpenAI-compatible) ──────────────────────────────────────────
 
+def _rejects_temperature(resp) -> bool:
+    """
+    Manche Modelle (z. B. OpenAI GPT-5-Reihe, Claude Opus 4.7) lehnen einen
+    eigenen temperature-Wert mit HTTP 400 ab -> dann ohne erneut senden.
+    """
+    return resp.status_code == 400 and "temperature" in resp.text.lower()
+
+
 async def _call_openai_compatible(
     url: str, api_key: Optional[str], model: str,
     text: str, system: str, temp: float,
@@ -209,6 +273,9 @@ async def _call_openai_compatible(
 
     async with httpx.AsyncClient(timeout=45) as client:
         resp = await client.post(url, headers=headers, json=payload)
+        if _rejects_temperature(resp):
+            payload.pop("temperature", None)
+            resp = await client.post(url, headers=headers, json=payload)
 
     if resp.status_code != 200:
         try:

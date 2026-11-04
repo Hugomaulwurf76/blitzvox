@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo === Blitztext - Windows Installation ===
+echo === BlitzVox - Windows Installation ===
 echo.
 
 set "PYTHON_EXE="

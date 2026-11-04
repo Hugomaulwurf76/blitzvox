@@ -12,7 +12,7 @@ from typing import Optional
 
 import keyring
 
-SERVICE_NAME = "Blitztext"
+SERVICE_NAME = "BlitzVox"
 
 # ── Keyring keys ─────────────────────────────────────────────────────────────
 KEY_OPENAI      = "openai_api_key"
@@ -29,7 +29,7 @@ def _config_path() -> Path:
         base = Path(os.environ.get("APPDATA", Path.home()))
     else:
         base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    p = base / "blitztext"
+    p = base / "blitzvox"
     p.mkdir(parents=True, exist_ok=True)
     return p / "settings.json"
 
@@ -171,6 +171,7 @@ class HotkeyConfig:
     text_improvement: str = "ctrl+alt+b"
     dampf_ablassen:   str = "ctrl+alt+f"
     emoji_text:       str = "ctrl+alt+j"
+    correction:       str = "ctrl+alt+k"   # Fenster "Letzten Text korrigieren"
     transcription_mode:    str = "hold"
     text_improvement_mode: str = "toggle"
     dampf_ablassen_mode:   str = "hold"
@@ -197,6 +198,7 @@ class AppSettings:
     custom_stt_url:      str                     = ""
     custom_llm_url:      str                     = ""
     audio_input_device:  Optional[int]           = None   # None = System-Default
+    spoken_punctuation:  bool                    = True   # "Komma" -> ","
 
 
 # ── Load / Save ───────────────────────────────────────────────────────────────
@@ -230,7 +232,7 @@ def load_settings() -> AppSettings:
             merged = _nested_update(defaults, saved)
             return _dict_to_settings(merged)
         except Exception as e:
-            # Kaputte Datei sichern, bevor Blitztext sie mit Standardwerten überschreibt
+            # Kaputte Datei sichern, bevor BlitzVox sie mit Standardwerten überschreibt
             backup = path.with_name("settings.defekt.json")
             try:
                 shutil.copy2(path, backup)
@@ -269,6 +271,7 @@ def _dict_to_settings(d: dict) -> AppSettings:
             dampf_ablassen_mode=h.get("dampf_ablassen_mode", s.hotkeys.dampf_ablassen_mode),
             emoji_text_mode=h.get("emoji_text_mode", s.hotkeys.emoji_text_mode),
             enabled=h.get("enabled", s.hotkeys.enabled),
+            correction=h.get("correction", s.hotkeys.correction),
         )
     if "transcription_model" in d:
         s.transcription_model = wmc(d["transcription_model"])
@@ -296,7 +299,8 @@ def _dict_to_settings(d: dict) -> AppSettings:
     for attr in ("launch_at_login", "auto_paste", "has_seen_onboarding",
                  "groq_stt_model", "groq_llm_model", "anthropic_model",
                  "ollama_base_url", "ollama_llm_model", "openrouter_llm_model",
-                 "custom_stt_url", "custom_llm_url", "audio_input_device"):
+                 "custom_stt_url", "custom_llm_url", "audio_input_device",
+                 "spoken_punctuation"):
         if attr in d:
             setattr(s, attr, d[attr])
 
@@ -329,7 +333,7 @@ def masked(key: Optional[str]) -> str:
         return "—"
     if len(key) <= 8:
         return "••••••••"
-    return key[:4] + "•" * (len(key) - 8) + key[-4:]
+    return key[:4] + "•" * 8 + key[-4:]   # feste Länge, damit lange Keys das Fenster nicht verbreitern
 
 
 # ── OpenRouter: Modellliste live laden ───────────────────────────────────────

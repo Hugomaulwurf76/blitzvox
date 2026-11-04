@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Blitztext Cross-Platform — Linux Installer
+# BlitzVox Cross-Platform — Linux Installer
 # Getestet auf Debian 12 / Ubuntu 22.04+
 
 set -e
 
-echo "=== Blitztext - Linux Installation ==="
+echo "=== BlitzVox - Linux Installation ==="
 echo
 
 # ── Schritt 1: Python suchen (versionsunabhaengig, mindestens 3.10) ─────────

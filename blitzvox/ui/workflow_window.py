@@ -15,6 +15,7 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QSize
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont, QPalette
 
 from ..workflow import WorkflowKind, WorkflowRunner, Phase
+from .theme import T, set_prop
 
 
 # ── Waveform widget ───────────────────────────────────────────────────────────
@@ -23,6 +24,7 @@ class WaveformWidget(QWidget):
     def __init__(self, color: str, parent=None):
         super().__init__(parent)
         self._color  = QColor(color)
+        self._idle   = QColor(T["hairline-strong"])
         self._level  = 0.0
         self._active = False
         self._bars   = [0.0] * 20
@@ -65,8 +67,11 @@ class WaveformWidget(QWidget):
             bar_h = max(3, int(level * h * 0.9))
             x = i * (bar_w + spacing)
             y = (h - bar_h) // 2
-            color = QColor(self._color)
-            color.setAlphaF(0.3 + level * 0.7)
+            if level <= 0.0:
+                color = QColor(self._idle)
+            else:
+                color = QColor(self._color)
+                color.setAlphaF(0.35 + min(level, 1.0) * 0.65)
             painter.setBrush(color)
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(x, y, bar_w, bar_h, 2, 2)
@@ -99,22 +104,24 @@ class WorkflowWindow(QWidget):
         self.setMinimumHeight(200)
 
     def _setup_ui(self) -> None:
-        color = self.meta["color"]
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(24, 24, 24, 20)
+        layout.setSpacing(14)
 
         # Header
         header = QHBoxLayout()
+        header.setSpacing(14)
         icon_label = QLabel(self.meta["icon"])
-        icon_label.setFont(QFont("Segoe UI Emoji", 22))
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        set_prop(icon_label, "role", "plaque")
         header.addWidget(icon_label)
 
         title_layout = QVBoxLayout()
+        title_layout.setSpacing(0)
         title = QLabel(self.meta["label"])
-        title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        set_prop(title, "role", "display")
         subtitle = QLabel(self.meta["subtitle"])
-        subtitle.setStyleSheet("color: #888; font-size: 11px;")
+        set_prop(subtitle, "role", "hint")
         title_layout.addWidget(title)
         title_layout.addWidget(subtitle)
         header.addLayout(title_layout)
@@ -124,17 +131,16 @@ class WorkflowWindow(QWidget):
         # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet(f"color: {color}; background: {color}; max-height: 2px;")
         layout.addWidget(sep)
 
         # Waveform
-        self.waveform = WaveformWidget(color)
+        self.waveform = WaveformWidget(T["primary"])
         layout.addWidget(self.waveform)
 
         # Status label
         self.status_label = QLabel("Bereit")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_label.setStyleSheet("font-size: 13px; color: #555;")
+        set_prop(self.status_label, "role", "status")
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
 
@@ -143,34 +149,21 @@ class WorkflowWindow(QWidget):
         self.result_area.setReadOnly(True)
         self.result_area.setMaximumHeight(150)
         self.result_area.setVisible(False)
-        self.result_area.setStyleSheet(
-            "background: #f8f9fa; border: 1px solid #e0e0e0; "
-            "border-radius: 6px; padding: 8px; font-size: 13px;"
-        )
         layout.addWidget(self.result_area)
 
         # Buttons
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
 
         self.record_btn = QPushButton("🎙  Aufnahme starten")
-        self.record_btn.setFixedHeight(40)
-        self.record_btn.setStyleSheet(
-            f"QPushButton {{ background: {color}; color: white; border-radius: 8px; "
-            f"font-size: 13px; font-weight: bold; padding: 0 16px; }}"
-            f"QPushButton:hover {{ background: {color}; opacity: 0.9; }}"
-            f"QPushButton:pressed {{ opacity: 0.8; }}"
-        )
+        set_prop(self.record_btn, "size", "lg")
+        set_prop(self.record_btn, "variant", "primary")
         self.record_btn.clicked.connect(self._toggle_recording)
         btn_layout.addWidget(self.record_btn)
 
         self.copy_btn = QPushButton("📋  Kopieren")
-        self.copy_btn.setFixedHeight(40)
         self.copy_btn.setVisible(False)
-        self.copy_btn.setStyleSheet(
-            "QPushButton { background: #f0f0f0; color: #333; border-radius: 8px; "
-            "font-size: 13px; padding: 0 16px; }"
-            "QPushButton:hover { background: #e0e0e0; }"
-        )
+        set_prop(self.copy_btn, "size", "lg")
         self.copy_btn.clicked.connect(self._copy_result)
         btn_layout.addWidget(self.copy_btn)
 
@@ -179,7 +172,7 @@ class WorkflowWindow(QWidget):
         # Cancel / close
         self.cancel_btn = QPushButton("Abbrechen")
         self.cancel_btn.setFlat(True)
-        self.cancel_btn.setStyleSheet("color: #888; font-size: 12px;")
+        set_prop(self.cancel_btn, "variant", "text")
         self.cancel_btn.clicked.connect(self._cancel)
         layout.addWidget(self.cancel_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -246,10 +239,7 @@ class WorkflowWindow(QWidget):
             self._set_idle()
         elif phase == Phase.RECORDING:
             self.record_btn.setText("⏹  Aufnahme stoppen")
-            self.record_btn.setStyleSheet(
-                "QPushButton { background: #e74c3c; color: white; border-radius: 8px; "
-                "font-size: 13px; font-weight: bold; padding: 0 16px; }"
-            )
+            set_prop(self.record_btn, "variant", "stop")
             self.result_area.setVisible(False)
             self.copy_btn.setVisible(False)
         elif phase in (Phase.TRANSCRIBING, Phase.REWRITING):
@@ -263,22 +253,14 @@ class WorkflowWindow(QWidget):
     def _set_idle(self) -> None:
         self.record_btn.setText("🎙  Aufnahme starten")
         self.record_btn.setEnabled(True)
-        color = self.meta["color"]
-        self.record_btn.setStyleSheet(
-            f"QPushButton {{ background: {color}; color: white; border-radius: 8px; "
-            f"font-size: 13px; font-weight: bold; padding: 0 16px; }}"
-        )
+        set_prop(self.record_btn, "variant", "primary")
         self.status_label.setText("Bereit")
-        self.status_label.setStyleSheet("font-size: 13px; color: #555;")
+        set_prop(self.status_label, "role", "status")
 
     def _set_done(self, text: str) -> None:
         self.record_btn.setText("🎙  Neue Aufnahme")
         self.record_btn.setEnabled(True)
-        color = self.meta["color"]
-        self.record_btn.setStyleSheet(
-            f"QPushButton {{ background: {color}; color: white; border-radius: 8px; "
-            f"font-size: 13px; font-weight: bold; padding: 0 16px; }}"
-        )
+        set_prop(self.record_btn, "variant", "primary")
         self.result_area.setPlainText(text)
         self.result_area.setVisible(True)
         self.copy_btn.setVisible(True)
@@ -290,13 +272,13 @@ class WorkflowWindow(QWidget):
 
         if self.runner.settings.auto_paste:
             self.status_label.setText("✅  Wird eingefügt …")
-            self.status_label.setStyleSheet("font-size: 13px; color: #27ae60; font-weight: bold;")
+            set_prop(self.status_label, "role", "success")
             # Kurz warten, Fenster schließen, dann ins Zielfenster einfügen
             self._pending_paste_text = text
             QTimer.singleShot(150, self._do_paste)
         else:
             self.status_label.setText("✅  In Zwischenablage kopiert")
-            self.status_label.setStyleSheet("font-size: 13px; color: #27ae60; font-weight: bold;")
+            set_prop(self.status_label, "role", "success")
 
     def _do_paste(self) -> None:
         from ..services import paste as paste_svc
@@ -315,13 +297,9 @@ class WorkflowWindow(QWidget):
     def _set_error(self, message: str) -> None:
         self.record_btn.setText("🎙  Erneut versuchen")
         self.record_btn.setEnabled(True)
-        color = self.meta["color"]
-        self.record_btn.setStyleSheet(
-            f"QPushButton {{ background: {color}; color: white; border-radius: 8px; "
-            f"font-size: 13px; font-weight: bold; padding: 0 16px; }}"
-        )
+        set_prop(self.record_btn, "variant", "primary")
         self.status_label.setText(f"❌  {message}")
-        self.status_label.setStyleSheet("font-size: 13px; color: #e74c3c;")
+        set_prop(self.status_label, "role", "error")
 
     def _copy_result(self) -> None:
         from PyQt6.QtWidgets import QApplication
