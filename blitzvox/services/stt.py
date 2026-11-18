@@ -152,6 +152,11 @@ async def _transcribe_assemblyai(audio_path: Path, cfg: WorkflowModelConfig,
         payload = {"audio_url": audio_url}
         if lang_code:
             payload["language_code"] = lang_code
+        else:
+            # Ohne language_code transkribiert AssemblyAI immer Englisch (en_us).
+            # Für „Automatisch erkennen“ muss die Erkennung ausdrücklich an sein.
+            # Beides zusammen ist nicht erlaubt (Fehler 400).
+            payload["language_detection"] = True
 
         if keyterms:
             # AssemblyAI erlaubt max. 6 Wörter pro Begriff
@@ -196,13 +201,13 @@ async def _transcribe_assemblyai(audio_path: Path, cfg: WorkflowModelConfig,
 
 async def _transcribe_local(audio_path: Path, cfg: WorkflowModelConfig,
                             prompt: str = "") -> str:
-    try:
-        from faster_whisper import WhisperModel
-    except ImportError:
+    from . import local_addon
+    if not local_addon.is_available():
         raise STTError(
-            "faster-whisper nicht installiert.\n"
-            "Bitte 'pip install faster-whisper' ausführen."
-        )
+            "Die lokale Spracherkennung ist nicht installiert.\n"
+            "Einstellungen → Erweitert → „Einrichtungsassistent starten“ zeigt, "
+            "wie du sie einrichtest.")
+    from faster_whisper import WhisperModel
 
     import asyncio
     import concurrent.futures
@@ -210,11 +215,38 @@ async def _transcribe_local(audio_path: Path, cfg: WorkflowModelConfig,
     model_size = cfg.local_model_size or "base"
     language   = cfg.language or None
 
-    def _run() -> str:
-        model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    def _load_audio():
+        # WAV selbst einlesen (16 kHz, mono, wie vom Recorder geschrieben) und als
+        # Zahlenreihe übergeben. faster-whisper 1.2.1 öffnet Dateien sonst über
+        # PyAV mit einem Parameter, den PyAV ab Version 15 nicht mehr kennt
+        # („metadata_errors“) – das schlug fehl.
+        import soundfile as sf
+        audio, rate = sf.read(str(audio_path), dtype="float32")
+        if audio.ndim > 1:
+            audio = audio.mean(axis=1)
+        if rate != 16000:
+            import numpy as np
+            n_out = int(round(len(audio) * 16000 / rate))
+            audio = np.interp(np.linspace(0, len(audio), n_out, endpoint=False),
+                              np.arange(len(audio)), audio).astype("float32")
+        return audio
+
+    def _transcribe_with(device: str, compute_type: str) -> str:
+        model = WhisperModel(model_size, device=device, compute_type=compute_type)
         segments, _ = model.transcribe(
-            str(audio_path), language=language, initial_prompt=prompt or None)
+            _load_audio(), language=language, initial_prompt=prompt or None)
+        # Die Erkennung läuft erst beim Durchgehen der Segmente
         return " ".join(s.text for s in segments).strip()
+
+    def _run() -> str:
+        # NVIDIA-GPU nutzen, wenn vorhanden. Fehlen dort Bibliotheken (CUDA 12,
+        # cuDNN 9) oder geht sonst etwas schief, automatisch auf die CPU ausweichen.
+        if local_addon.cuda_device_count() > 0:
+            try:
+                return _transcribe_with("cuda", "float16")
+            except Exception:
+                pass
+        return _transcribe_with("cpu", "int8")
 
     loop = asyncio.get_event_loop()
     with concurrent.futures.ThreadPoolExecutor() as pool:

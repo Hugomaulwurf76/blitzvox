@@ -20,6 +20,10 @@ from blitzvox.services.settings import _config_path
 from blitzvox.ui.tray import BlitzVoxTrayApp
 from blitzvox.ui.theme import apply_theme
 from blitzvox.services.migration import migrate_from_blitztext
+from blitzvox.services import local_addon
+
+# Optionale Erweiterung „Lokale Spracherkennung“ einbinden (Ordner „lokal“)
+local_addon.enable()
 
 
 def _show_unhandled(exc_type, exc, tb) -> None:
@@ -87,7 +91,6 @@ def main():
     migrate_from_blitztext()
 
     app.setApplicationName("BlitzVox")
-    app.setApplicationDisplayName("BlitzVox")
     app.setApplicationVersion(__version__)
     app.setOrganizationName("BlitzVox")
     app.setDesktopFileName("blitzvox")

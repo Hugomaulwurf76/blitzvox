@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QApplication, QSystemTrayIcon, QMenu, QMessageBox,
 )
 from PyQt6.QtGui import QIcon, QAction, QPixmap, QPainter, QColor, QFont
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, QTimer
 
 from .. import __version__
 from ..services.settings import load_settings, save_settings, AppSettings, get_load_error
@@ -20,6 +20,7 @@ from ..services.paste import save_focus
 from ..workflow import WorkflowKind, WorkflowRunner, Phase
 from .workflow_window import WorkflowWindow
 from .settings_window import SettingsWindow
+from .setup_wizard import needs_setup, run_setup_wizard
 
 
 # ── Async bridge: run asyncio in a background thread ─────────────────────────
@@ -152,6 +153,8 @@ class BlitzVoxTrayApp(QSystemTrayIcon):
     def __init__(self, app: QApplication):
         super().__init__(_make_icon(), app)
         self.app = app
+        # Fenstersymbol fuer alle Fenster (Einstellungen, Assistent, Korrektur, ...)
+        app.setWindowIcon(_make_icon())
         self.settings: AppSettings = load_settings()
         load_error = get_load_error()
         if load_error:
@@ -179,16 +182,11 @@ class BlitzVoxTrayApp(QSystemTrayIcon):
 
         self._setup_hotkeys()
 
-        # Show notification on first run
-        if not self.settings.has_seen_onboarding:
-            self.showMessage(
-                "BlitzVox bereit",
-                "Klicke auf das Tray-Icon oder nutze die Hotkeys.",
-                QSystemTrayIcon.MessageIcon.Information,
-                3000,
-            )
-            self.settings.has_seen_onboarding = True
-            save_settings(self.settings)
+        # Einrichtungsassistent beim ersten Start bzw. wenn die Spracherkennung
+        # nicht einsatzbereit ist. Per Timer, damit er erst nach dem Start der
+        # Ereignisschleife (und nach dem Anzeigen des Tray-Icons) erscheint.
+        if needs_setup(self.settings):
+            QTimer.singleShot(0, lambda: self._open_setup_wizard(automatic=True))
 
     # ── Menu ──────────────────────────────────────────────────────────────────
 
@@ -382,6 +380,11 @@ class BlitzVoxTrayApp(QSystemTrayIcon):
     def _open_settings(self) -> None:
         win = SettingsWindow(self.settings, parent=None)
         win.settings_saved.connect(self._on_settings_saved)
+        # Erst nach dem Schließen des Einstellungsfensters starten (Timer),
+        # damit nicht beide Fenster gleichzeitig offen sind.
+        win.setup_wizard_requested.connect(
+            lambda: QTimer.singleShot(0, lambda: self._open_setup_wizard(automatic=False))
+        )
         win.show()
         win.raise_()
         win.activateWindow()
@@ -391,3 +394,51 @@ class BlitzVoxTrayApp(QSystemTrayIcon):
         save_settings(new_settings)
         # Hotkeys mit neuen Einstellungen neu aufsetzen
         self._setup_hotkeys()
+
+    # ── Einrichtungsassistent ─────────────────────────────────────────────────
+
+    def _open_setup_wizard(self, automatic: bool = False) -> None:
+        """Zeigt den Einrichtungsassistenten.
+        automatic=True: Aufruf beim Programmstart, False: Knopf im Tab „Erweitert“."""
+        # Eigene Tastenkürzel pausieren: Das Probediktat im Assistenten nutzt
+        # das Tastenkürzel selbst, sonst würden beide gleichzeitig reagieren.
+        if self._hotkey_service:
+            self._hotkey_service.stop()
+            self._hotkey_service = None
+        try:
+            new_settings = run_setup_wizard(self.settings)
+        finally:
+            self._setup_hotkeys()
+
+        if new_settings is not None:
+            # Autostart-Eintrag setzen oder entfernen (wie beim Speichern der Einstellungen)
+            try:
+                from ..services.autostart import set_enabled
+                set_enabled(new_settings.launch_at_login)
+            except Exception as e:
+                QMessageBox.warning(
+                    None, "BlitzVox",
+                    f"Der Autostart-Eintrag konnte nicht geändert werden:\n{e}",
+                )
+            self._on_settings_saved(new_settings)
+            self.showMessage(
+                "BlitzVox ist eingerichtet",
+                "Klicke auf das Tray-Icon oder nutze die Tastenkürzel.",
+                QSystemTrayIcon.MessageIcon.Information,
+                4000,
+            )
+            return
+
+        # Abgebrochen: Eingaben verworfen. Ersten Start trotzdem als erledigt
+        # merken; fehlt der Key weiterhin, startet needs_setup() den Assistenten
+        # beim nächsten Programmstart erneut.
+        if automatic:
+            if not self.settings.has_seen_onboarding:
+                self.settings.has_seen_onboarding = True
+                save_settings(self.settings)
+            self.showMessage(
+                "Einrichtung abgebrochen",
+                "Du kannst sie jederzeit unter Einstellungen → Erweitert erneut starten.",
+                QSystemTrayIcon.MessageIcon.Information,
+                5000,
+            )

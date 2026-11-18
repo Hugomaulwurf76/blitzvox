@@ -16,3 +16,6 @@ blitztext-cross.zip
 # Build-Ordner des Entwicklers (nicht im Repo)
 BlitzVoxEXE/
 BlitzVoxDEB/
+
+# Erweiterung „Lokale Spracherkennung“ (nur zum Testen aus dem Quellcode)
+lokal/

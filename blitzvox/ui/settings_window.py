@@ -17,6 +17,7 @@ from PyQt6.QtCore import Qt, QObject, pyqtSignal
 from PyQt6.QtGui import QFont, QKeySequence
 
 from .theme import set_prop
+from .setup_wizard import LANGUAGES, _LOCAL_SIZES as LOCAL_SIZES
 
 from .. import __version__
 from ..services.settings import (
@@ -67,6 +68,7 @@ class _ModelLoader(QObject):
 
 class SettingsWindow(QWidget):
     settings_saved = pyqtSignal(object)  # emits AppSettings
+    setup_wizard_requested = pyqtSignal()  # Knopf „Einrichtungsassistent starten“
 
     def __init__(self, settings: AppSettings, parent=None):
         super().__init__(parent)
@@ -146,15 +148,22 @@ class SettingsWindow(QWidget):
             field.setObjectName(f"key_{key_name}")
             row.addWidget(field, 1)
 
-            show_btn = QPushButton("👁")
-            set_prop(show_btn, "variant", "icon")
-            show_btn.setCheckable(True)
-            show_btn.setToolTip("Schlüssel anzeigen / verbergen")
-            show_btn.toggled.connect(
-                lambda on, f=field: f.setEchoMode(
-                    QLineEdit.EchoMode.Normal if on else QLineEdit.EchoMode.Password
-                )
-            )
+            show_btn = QPushButton("Anzeigen")
+            show_btn.setToolTip("Key vollständig in einem eigenen Fenster anzeigen")
+
+            def _show(*_, f=field, k=key_name, title=label):
+                # eingetippten Key, sonst den gespeicherten Key anzeigen
+                key = f.text().strip() or (get_api_key(k) or "")
+                if key:
+                    from .key_popup import show_key
+                    show_key(title, key, self)
+
+            def _update_btn(*_, f=field, k=key_name, b=show_btn):
+                b.setEnabled(bool(f.text().strip()) or bool(get_api_key(k)))
+
+            show_btn.clicked.connect(_show)
+            field.textChanged.connect(_update_btn)
+            _update_btn()
             row.addWidget(show_btn)
 
             paste_btn = QPushButton("Einfügen")
@@ -180,7 +189,7 @@ class SettingsWindow(QWidget):
         layout.addWidget(_key_row("AssemblyAI API Key", KEY_ASSEMBLYAI, "…"))
 
         # Ollama URL
-        ollama_grp = QGroupBox("Ollama (lokales LLM)")
+        ollama_grp = QGroupBox("Lokal – Ollama (eigenes Programm)")
         ol = QFormLayout(ollama_grp)
         self._ollama_url = QLineEdit(self.settings.ollama_base_url)
         self._ollama_url.setPlaceholderText("http://localhost:11434")
@@ -270,18 +279,27 @@ class SettingsWindow(QWidget):
         tr_grp = QGroupBox("🎙  BlitzVox — Transkription")
         tr = QFormLayout(tr_grp)
         self._tr_stt_provider = self._stt_combo(self.settings.transcription_model.stt_provider)
-        self._tr_stt_model    = self._stt_model_combo(self._tr_stt_provider, self.settings.transcription_model.stt_model)
-        self._tr_language     = QLineEdit(self.settings.transcription_model.language)
+        self._tr_stt_model    = self._stt_model_combo(self._tr_stt_provider, self.settings.transcription_model.stt_model,
+                                                    self.settings.transcription_model.local_model_size)
+        self._tr_language     = self._language_combo(self.settings.transcription_model.language)
         tr.addRow("STT-Anbieter:", self._tr_stt_provider)
         tr.addRow("STT-Modell:", self._tr_stt_model)
-        tr.addRow("Sprache (BCP-47):", self._tr_language)
+        tr.addRow("Sprache:", self._tr_language)
+        lang_note = QLabel(
+            "Gilt für alle vier Workflows. Andere Sprachen als Code eintragen, "
+            "z. B. „sv“ für Schwedisch."
+        )
+        set_prop(lang_note, "role", "hint")
+        lang_note.setWordWrap(True)
+        tr.addRow("", lang_note)
         layout.addWidget(tr_grp)
 
         # ─ BlitzVox+ ─
         ti_grp = QGroupBox("✨  BlitzVox+ — Text verbessern")
         ti = QFormLayout(ti_grp)
         self._ti_stt_provider = self._stt_combo(self.settings.text_improvement.model.stt_provider)
-        self._ti_stt_model    = self._stt_model_combo(self._ti_stt_provider, self.settings.text_improvement.model.stt_model)
+        self._ti_stt_model    = self._stt_model_combo(self._ti_stt_provider, self.settings.text_improvement.model.stt_model,
+                                                    self.settings.text_improvement.model.local_model_size)
         self._ti_llm_provider = self._llm_combo(self.settings.text_improvement.model.llm_provider)
         self._ti_llm_model    = self._llm_model_combo(
             self._ti_llm_provider, self.settings.text_improvement.model.llm_model
@@ -309,7 +327,8 @@ class SettingsWindow(QWidget):
         da_grp = QGroupBox("🔥  BlitzVox $%&! — Frust umformulieren")
         da = QFormLayout(da_grp)
         self._da_stt_provider = self._stt_combo(self.settings.dampf_ablassen.model.stt_provider)
-        self._da_stt_model    = self._stt_model_combo(self._da_stt_provider, self.settings.dampf_ablassen.model.stt_model)
+        self._da_stt_model    = self._stt_model_combo(self._da_stt_provider, self.settings.dampf_ablassen.model.stt_model,
+                                                    self.settings.dampf_ablassen.model.local_model_size)
         self._da_llm_provider = self._llm_combo(self.settings.dampf_ablassen.model.llm_provider)
         self._da_llm_model    = self._llm_model_combo(
             self._da_llm_provider, self.settings.dampf_ablassen.model.llm_model
@@ -327,7 +346,8 @@ class SettingsWindow(QWidget):
         em_grp = QGroupBox("😊  BlitzVox :) — Emojis")
         em = QFormLayout(em_grp)
         self._em_stt_provider = self._stt_combo(self.settings.emoji.model.stt_provider)
-        self._em_stt_model    = self._stt_model_combo(self._em_stt_provider, self.settings.emoji.model.stt_model)
+        self._em_stt_model    = self._stt_model_combo(self._em_stt_provider, self.settings.emoji.model.stt_model,
+                                                    self.settings.emoji.model.local_model_size)
         self._em_llm_provider = self._llm_combo(self.settings.emoji.model.llm_provider)
         self._em_llm_model    = self._llm_model_combo(
             self._em_llm_provider, self.settings.emoji.model.llm_model
@@ -349,11 +369,55 @@ class SettingsWindow(QWidget):
         scroll.setWidget(w)
         return scroll
 
-    def _stt_model_combo(self, provider_combo: QComboBox, current_model: str) -> QComboBox:
-        """Editierbares STT-Modellfeld. Bei OpenRouter kommt die Liste von der API."""
+    def _reset_hotkeys(self) -> None:
+        """Alle Tastenkürzel und Modi auf die Vorgaben aus HotkeyConfig setzen
+        (nur in den Feldern; gespeichert wird erst mit „Speichern“)."""
+        from ..services.settings import HotkeyConfig
+        d = HotkeyConfig()
+        self._hk_transcription.setText(d.transcription)
+        self._hk_text_improvement.setText(d.text_improvement)
+        self._hk_dampf_ablassen.setText(d.dampf_ablassen)
+        self._hk_emoji_text.setText(d.emoji_text)
+        self._hk_correction.setText(d.correction)
+        for combo, mode in (
+            (self._hk_transcription_mode,    d.transcription_mode),
+            (self._hk_text_improvement_mode, d.text_improvement_mode),
+            (self._hk_dampf_ablassen_mode,   d.dampf_ablassen_mode),
+            (self._hk_emoji_text_mode,       d.emoji_text_mode),
+        ):
+            combo.setCurrentIndex(combo.findData(mode))
+
+    def _language_combo(self, current: str) -> QComboBox:
+        """Sprachauswahl mit „Automatisch erkennen“; eigene Codes können eingetippt werden."""
         cb = NoWheelComboBox()
         cb.setEditable(True)
         cb.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        for name, code in LANGUAGES:
+            cb.addItem(name, code)
+        idx = cb.findData(current or "")
+        if idx >= 0:
+            cb.setCurrentIndex(idx)
+        else:
+            cb.setEditText(current)  # eigener Code, z. B. "sv"
+        return cb
+
+    @staticmethod
+    def _language_value(cb: QComboBox) -> str:
+        """Sprachcode aus der Auswahl: Listeneintrag -> Code, sonst eingetippter Text."""
+        text = cb.currentText().strip()
+        idx = cb.findText(text, Qt.MatchFlag.MatchFixedString)
+        if idx >= 0:
+            return cb.itemData(idx) or ""
+        return text
+
+    def _stt_model_combo(self, provider_combo: QComboBox, current_model: str,
+                         local_size: str = "base") -> QComboBox:
+        """STT-Modellfeld. Bei OpenRouter kommt die Liste von der API, bei „Lokal“
+        steht hier die Modellgröße von faster-whisper."""
+        cb = NoWheelComboBox()
+        cb.setEditable(True)
+        cb.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        cb._local_size = local_size or "base"
         self._stt_model_combos.append((cb, provider_combo))
         self._fill_stt_models(cb, provider_combo.currentData(), current_model)
         # currentIndexChanged feuert nur bei echtem Anbieterwechsel, nicht beim
@@ -367,14 +431,48 @@ class SettingsWindow(QWidget):
     def _fill_stt_models(self, cb: QComboBox, provider: str, keep_text: str) -> None:
         cb.blockSignals(True)
         cb.clear()
-        if provider == STTProvider.OPENROUTER:
-            cb.addItems(self._or_stt_models)
-        elif provider == STTProvider.OPENAI:
-            cb.addItem("whisper-1")  # Standardmodell aus services/stt.py
-        elif provider == STTProvider.GROQ:
-            cb.addItem("whisper-large-v3-turbo")  # Standardmodell aus services/stt.py
-        cb.setEditText(keep_text)
+        cb.setEnabled(True)
+        if provider == STTProvider.LOCAL:
+            # faster-whisper: Modellgröße statt Modellname (Feld local_model_size)
+            cb.setEditable(False)
+            for name, size in LOCAL_SIZES:
+                cb.addItem(name, size)
+            idx = cb.findData(getattr(cb, "_local_size", "base"))
+            cb.setCurrentIndex(idx if idx >= 0 else 1)
+        elif provider == STTProvider.ASSEMBLYAI:
+            # BlitzVox schickt kein Modell mit: AssemblyAI nimmt sein Standardmodell
+            cb.setEditable(False)
+            cb.addItem("Standardmodell von AssemblyAI")
+            cb.setEnabled(False)
+        else:
+            cb.setEditable(True)
+            cb.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+            if provider == STTProvider.OPENROUTER:
+                cb.addItems(self._or_stt_models)
+                cb.lineEdit().setPlaceholderText("Standard: openai/whisper-1")
+            elif provider == STTProvider.OPENAI:
+                cb.addItem("whisper-1")  # Standardmodell aus services/stt.py
+            elif provider == STTProvider.GROQ:
+                cb.addItem("whisper-large-v3-turbo")  # Standardmodell aus services/stt.py
+            elif provider == STTProvider.CUSTOM:
+                cb.lineEdit().setPlaceholderText("Standard: whisper-1")
+            if keep_text:
+                cb.setEditText(keep_text)
+            elif cb.count():
+                cb.setCurrentIndex(0)   # nur ein Modell: gleich anzeigen
+            else:
+                cb.setEditText("")
         cb.blockSignals(False)
+
+    @staticmethod
+    def _store_stt_model(cfg, cb: QComboBox, provider: str) -> None:
+        """STT-Modellfeld in die Workflow-Einstellung übernehmen."""
+        if provider == STTProvider.LOCAL:
+            cfg.local_model_size = cb.currentData() or "base"
+        elif provider == STTProvider.ASSEMBLYAI:
+            cfg.stt_model = ""
+        else:
+            cfg.stt_model = cb.currentText().strip()
 
     def _on_openrouter_transcription_models(self, ids: list) -> None:
         self._or_stt_models = ids
@@ -537,6 +635,12 @@ class SettingsWindow(QWidget):
         help_text.setWordWrap(True)
         help_text.setTextFormat(Qt.TextFormat.RichText)
         grid.addWidget(help_text, len(rows) + 1, 0, 1, 3)
+
+        reset_btn = QPushButton("Standardwerte wiederherstellen")
+        reset_btn.setToolTip("Setzt alle Tastenkürzel und Modi auf die Vorgaben zurück. "
+                             "Übernommen wird erst mit „Speichern“.")
+        reset_btn.clicked.connect(self._reset_hotkeys)
+        grid.addWidget(reset_btn, len(rows) + 2, 0, 1, 3, Qt.AlignmentFlag.AlignLeft)
 
         # Tabelle ausgrauen, wenn Hotkeys deaktiviert sind
         box.setEnabled(self._hk_enabled.isChecked())
@@ -707,6 +811,22 @@ class SettingsWindow(QWidget):
         mf.addRow("Aufnahmegerät:", self._mic_combo)
         layout.addWidget(mic_grp)
 
+        # ─ Einrichtungsassistent ─
+        wizard_grp = QGroupBox("🧭  Einrichtung")
+        wl = QVBoxLayout(wizard_grp)
+        wizard_note = QLabel(
+            "Führt Schritt für Schritt durch Spracherkennung, Mikrofon, Tastenkürzel "
+            "und ein Probediktat. Dieses Fenster wird dabei geschlossen; "
+            "nicht gespeicherte Änderungen gehen verloren."
+        )
+        set_prop(wizard_note, "role", "hint")
+        wizard_note.setWordWrap(True)
+        wl.addWidget(wizard_note)
+        wizard_btn = QPushButton("Einrichtungsassistent starten")
+        wizard_btn.clicked.connect(self._request_setup_wizard)
+        wl.addWidget(wizard_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(wizard_grp)
+
         version_grp = QGroupBox("ℹ️  Über BlitzVox")
         vf = QFormLayout(version_grp)
         version_label = QLabel(f"Version {__version__}")
@@ -716,6 +836,11 @@ class SettingsWindow(QWidget):
 
         layout.addStretch()
         return w
+
+    def _request_setup_wizard(self) -> None:
+        """Einstellungsfenster schließen und den Assistenten anfordern (öffnet die Tray-Klasse)."""
+        self.close()
+        self.setup_wizard_requested.emit()
 
     # ── OpenRouter: Modellliste beim Öffnen laden ────────────────────────────
 
@@ -776,12 +901,16 @@ class SettingsWindow(QWidget):
 
         # Transcription
         s.transcription_model.stt_provider = self._tr_stt_provider.currentData()
-        s.transcription_model.stt_model    = self._tr_stt_model.currentText().strip()
-        s.transcription_model.language     = self._tr_language.text().strip()
+        self._store_stt_model(s.transcription_model, self._tr_stt_model, self._tr_stt_provider.currentData())
+        # Sprache gilt für alle vier Workflows (wie im Einrichtungsassistenten)
+        language = self._language_value(self._tr_language)
+        for model in (s.transcription_model, s.text_improvement.model,
+                      s.dampf_ablassen.model, s.emoji.model):
+            model.language = language
 
         # BlitzVox+
         s.text_improvement.model.stt_provider = self._ti_stt_provider.currentData()
-        s.text_improvement.model.stt_model    = self._ti_stt_model.currentText().strip()
+        self._store_stt_model(s.text_improvement.model, self._ti_stt_model, self._ti_stt_provider.currentData())
         s.text_improvement.model.llm_provider = self._ti_llm_provider.currentData()
         s.text_improvement.model.llm_model    = self._ti_llm_model.currentText().strip()
         s.text_improvement.tone               = self._ti_tone.currentData()
@@ -790,14 +919,14 @@ class SettingsWindow(QWidget):
 
         # Dampf ablassen
         s.dampf_ablassen.model.stt_provider = self._da_stt_provider.currentData()
-        s.dampf_ablassen.model.stt_model    = self._da_stt_model.currentText().strip()
+        self._store_stt_model(s.dampf_ablassen.model, self._da_stt_model, self._da_stt_provider.currentData())
         s.dampf_ablassen.model.llm_provider = self._da_llm_provider.currentData()
         s.dampf_ablassen.model.llm_model    = self._da_llm_model.currentText().strip()
         s.dampf_ablassen.system_prompt      = self._da_prompt.toPlainText().strip()
 
         # Emoji
         s.emoji.model.stt_provider = self._em_stt_provider.currentData()
-        s.emoji.model.stt_model    = self._em_stt_model.currentText().strip()
+        self._store_stt_model(s.emoji.model, self._em_stt_model, self._em_stt_provider.currentData())
         s.emoji.model.llm_provider = self._em_llm_provider.currentData()
         s.emoji.model.llm_model    = self._em_llm_model.currentText().strip()
         s.emoji.density            = self._em_density.currentData()
