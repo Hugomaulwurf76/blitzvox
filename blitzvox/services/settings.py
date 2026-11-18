@@ -50,7 +50,7 @@ class STTProvider:
         GROQ:       "Groq Whisper (kostenlos, Standard)",
         OPENAI:     "OpenAI Whisper API",
         ASSEMBLYAI: "AssemblyAI",
-        LOCAL:      "Lokal (faster-whisper)",
+        LOCAL:      "Lokal – faster-whisper (offline)",
         OPENROUTER: "OpenRouter (Whisper-Modelle)",
         CUSTOM:     "Eigener Endpunkt",
     }
@@ -70,7 +70,7 @@ class LLMProvider:
         GROQ:       "Groq (kostenlos, Standard)",
         OPENAI:     "OpenAI",
         ANTHROPIC:  "Claude (Anthropic)",
-        OLLAMA:     "Ollama (lokal)",
+        OLLAMA:     "Lokal – Ollama (eigenes Programm)",
         OPENROUTER: "OpenRouter (alle Modelle)",
         CUSTOM:     "Eigener Endpunkt",
     }

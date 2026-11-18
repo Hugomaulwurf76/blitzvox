@@ -62,7 +62,8 @@ Reine Groß-/Kleinschreibung und Satzzeichen werden nicht gelernt, das erledigt 
 | **Groq Whisper** *(Standard, kostenlos)* | Groq API Key |
 | **OpenAI Whisper API** | OpenAI API Key |
 | **AssemblyAI** | AssemblyAI API Key |
-| **Lokal (faster-whisper)** | `pip install faster-whisper`, kein Key nötig |
+| **OpenRouter** (Whisper-Modelle) | OpenRouter API Key |
+| **Lokal – faster-whisper (offline)** | Erweiterung „Lokale Spracherkennung“ (siehe unten), kein Key nötig |
 | **Eigener Endpunkt** | OpenAI-kompatibler Endpunkt |
 
 ### LLM (Textverarbeitung)
@@ -71,7 +72,8 @@ Reine Groß-/Kleinschreibung und Satzzeichen werden nicht gelernt, das erledigt 
 | **Groq** *(Standard, kostenlos)* | Groq API Key |
 | **OpenAI** | OpenAI API Key |
 | **Claude (Anthropic)** | Anthropic API Key |
-| **Ollama** (lokal, selbst gehostet) | Ollama läuft auf localhost:11434 |
+| **OpenRouter** (alle Modelle) | OpenRouter API Key |
+| **Lokal – Ollama (eigenes Programm)** | [Ollama](https://ollama.com) installiert und gestartet, mindestens ein Modell geladen (`ollama pull <Modellname>`), erreichbar unter localhost:11434 |
 | **Eigener Endpunkt** | OpenAI-kompatibler Endpunkt |
 
 Jeden Workflow kannst du **unabhängig** konfigurieren — z.B. BlitzVox mit Groq-Whisper, BlitzVox+ mit lokalem Ollama.
@@ -88,10 +90,13 @@ Jeden Workflow kannst du **unabhängig** konfigurieren — z.B. BlitzVox mit Gro
 - Auf Linux: das Install-Skript richtet `portaudio19-dev`, `xdotool`/`wtype` etc. automatisch ein (per `sudo apt-get`)
 
 ### Windows 11 (fertiges Setup)
-1. `BlitzVoxSetup-1.0.7.exe` aus den Releases herunterladen und ausführen.
+1. `BlitzVoxSetup-1.0.8.exe` aus den Releases herunterladen und ausführen.
 2. Windows fragt nach Administratorrechten. Die Installation erfolgt immer für alle Benutzer nach `C:\Program Files\BlitzVox`.
-3. Der Assistent legt einen Startmenü-Eintrag an, optional auch eine Desktop-Verknüpfung.
-4. Autostart mit Windows: Einstellungen → Erweitert → „Mit Windows starten“.
+3. Bei „Komponenten auswählen“ entscheidest du, ob die **lokale Spracherkennung** (offline, ohne API-Key) mitinstalliert wird. Ohne Haken bleibt BlitzVox klein und nutzt Online-Dienste wie Groq.
+4. Der Assistent legt einen Startmenü-Eintrag an, optional auch eine Desktop-Verknüpfung.
+5. Autostart mit Windows: Einstellungen → Erweitert → „Mit Windows starten“.
+
+Die lokale Spracherkennung lässt sich später nachrüsten oder entfernen: Setup erneut ausführen und den Haken setzen bzw. entfernen.
 
 ### Windows 11 (aus dem Quellcode)
 ```cmd
@@ -104,16 +109,26 @@ start.bat
 `install_windows.bat` installiert die Python-Pakete in das gefundene Python und erzeugt `start.bat`. Ist kein passendes Python vorhanden, verlinkt das Skript direkt zum Download.
 
 ### Linux (Debian/Ubuntu, fertiges Paket)
-`blitzvox_1.0.7_amd64.deb` aus den Releases herunterladen und installieren:
+`blitzvox_1.0.8_amd64.deb` aus den Releases herunterladen und installieren:
 ```bash
-sudo apt install ./blitzvox_1.0.7_amd64.deb
+sudo apt install ./blitzvox_1.0.8_amd64.deb
 ```
-Danach im Anwendungsmenü „BlitzVox“ starten. Deinstallation: `sudo apt remove blitzvox`.
+Optional zusätzlich die **lokale Spracherkennung** (offline, ohne API-Key) als eigenes Paket:
+```bash
+sudo apt install ./blitzvox-lokal_1.0.8_amd64.deb
+```
+Danach im Anwendungsmenü „BlitzVox“ starten. Deinstallation: `sudo apt remove blitzvox-lokal blitzvox`.
 
 ### Windows-Setup selbst bauen (Entwickler)
 Im Ordner `BlitzVoxEXE`:
 1. `build_exe.bat` ausführen. Es installiert die Build-Pakete, erzeugt `BlitzVox.ico` aus dem Tray-Icon und baut `dist\BlitzVox\BlitzVox.exe` mit PyInstaller.
-2. `BlitzVox.iss` mit dem [Inno Setup Compiler](https://jrsoftware.org/isdl.php) öffnen und kompilieren. Das Ergebnis liegt in `output\BlitzVoxSetup-1.0.7.exe`.
+2. `build_lokal.bat` ausführen. Es füllt den Ordner `lokal` mit faster-whisper (Erweiterung „Lokale Spracherkennung“, mit demselben Python wie die EXE).
+3. `BlitzVox.iss` mit dem [Inno Setup Compiler](https://jrsoftware.org/isdl.php) öffnen und kompilieren. Das Ergebnis liegt in `output\BlitzVoxSetup-1.0.8.exe`.
+
+### Linux-Pakete selbst bauen (Entwickler)
+Im Ordner `BlitzVoxDEB` auf Debian/Ubuntu/Linux Mint:
+1. `bash build_deb.sh` baut `blitzvox_1.0.8_amd64.deb`.
+2. `bash build_lokal_deb.sh` baut das Zusatzpaket `blitzvox-lokal_1.0.8_amd64.deb`. Auf demselben System bauen wie das Hauptpaket, damit die Python-Version passt.
 
 ### Linux (Debian/Ubuntu)
 ```bash
@@ -128,20 +143,24 @@ chmod +x install_linux.sh
 
 Autostart beim Anmelden: Einstellungen → Erweitert → „Beim Anmelden starten“. Das legt `~/.config/autostart/blitzvox.desktop` an und entfernt die Datei wieder, wenn du die Option ausschaltest.
 
-### Lokale Transkription (kein API Key)
-```bash
-pip install faster-whisper
-```
-Dann in den Einstellungen → Workflows → STT-Anbieter: "Lokal (faster-whisper)" wählen.
+### Lokale Spracherkennung (offline, kein API-Key)
+Die Spracherkennung kann komplett auf deinem Rechner laufen (faster-whisper). Weil das den Download deutlich vergrößert, ist sie eine Erweiterung:
+- **Windows-Setup:** bei „Komponenten auswählen“ den Haken setzen.
+- **Linux:** zusätzlich das Paket `blitzvox-lokal` installieren (siehe oben).
+- **Aus dem Quellcode:** `pip install faster-whisper` in das Python, mit dem BlitzVox läuft.
+
+Dann im Einrichtungsassistenten bzw. unter Einstellungen → Workflows „Lokal – faster-whisper (offline)“ und eine Modellgröße wählen. Das Modell wird beim ersten Diktat einmalig heruntergeladen.
+
+**Grafikkarte (GPU):** Mit einer NVIDIA-Grafikkarte rechnet die lokale Erkennung deutlich schneller. Dafür brauchst du eine NVIDIA-Grafikkarte, einen aktuellen NVIDIA-Treiber sowie CUDA 12 und cuDNN 9 von NVIDIA ([CUDA](https://developer.nvidia.com/cuda-downloads), [cuDNN](https://developer.nvidia.com/cudnn)). Ist das vorhanden, nutzt BlitzVox die Grafikkarte automatisch, sonst den Prozessor. AMD- und Intel-Grafikkarten werden nicht unterstützt.
 
 ---
 
 ## Erster Start
 
-1. App starten: Startmenü bzw. Desktop-Verknüpfung (Windows), `./start.sh` (Linux)
-2. Tray-Icon erscheint in der Taskleiste. Windows 11 legt neue Tray-Icons oft im Überlauf (`^`) ab. Unter „Einstellungen → Personalisierung → Taskleiste → Andere Taskleistensymbole“ lässt es sich dauerhaft einblenden.
-3. Rechtsklick → Einstellungen → API-Zugänge → API Key eintragen
-4. Rechtsklick → BlitzVox → Aufnahme starten
+1. App starten: Startmenü bzw. Desktop-Verknüpfung (Windows), Anwendungsmenü bzw. `./start.sh` (Linux)
+2. Der **Einrichtungsassistent** führt Schritt für Schritt durch Sprache, Spracherkennung, KI-Funktionen, Mikrofon, Tastenkürzel und ein Probediktat. Du kannst ihn jederzeit unter Einstellungen → Erweitert → „Einrichtungsassistent starten“ erneut aufrufen.
+3. Tray-Icon erscheint in der Taskleiste. Windows 11 legt neue Tray-Icons oft im Überlauf (`^`) ab. Unter „Einstellungen → Personalisierung → Taskleiste → Andere Taskleistensymbole“ lässt es sich dauerhaft einblenden.
+4. Diktieren: Tastenkürzel drücken (Standard `Ctrl+Alt+W`) oder Rechtsklick auf das Tray-Icon → BlitzVox
 
 Unter Linux öffnet ein Linksklick auf das Tray-Icon kein Popup (Wayland-Einschränkung). Dort nutzt du den Rechtsklick.
 
@@ -168,16 +187,22 @@ install_linux.sh                Automatisches Setup für Linux
 requirements.txt                Python-Abhängigkeiten (pyautogui/pywin32 nur unter Windows)
 BlitzVoxEXE/
   build_exe.bat                 baut dist\BlitzVox\BlitzVox.exe (Entwickler)
+  build_lokal.bat               baut die Erweiterung „Lokale Spracherkennung“ (Ordner lokal)
   make_icon.py                  erzeugt BlitzVox.ico aus dem Tray-Icon
   BlitzVox.spec                PyInstaller-Konfiguration
   BlitzVox.iss                 Inno-Setup-Skript für BlitzVoxSetup-x.y.z.exe
+BlitzVoxDEB/
+  build_deb.sh                  baut blitzvox_x.y.z_amd64.deb
+  build_lokal_deb.sh            baut blitzvox-lokal_x.y.z_amd64.deb
+  blitzvox_linux.spec           PyInstaller-Konfiguration (Linux)
 blitzvox/
   workflow.py                   Kernlogik aller 4 Workflows
   services/
     settings.py                 Konfiguration + Keyring + Modell-Vorschlagslisten
     recorder.py                 Audioaufnahme (sounddevice)
-    stt.py                      STT-Anbieter (Groq/OpenAI/AssemblyAI/lokal/custom)
-    llm.py                      LLM-Anbieter (Groq/OpenAI/Claude/Ollama/custom)
+    stt.py                      STT-Anbieter (Groq/OpenAI/AssemblyAI/OpenRouter/lokal/custom)
+    llm.py                      LLM-Anbieter (Groq/OpenAI/Claude/OpenRouter/Ollama/custom)
+    local_addon.py              Erweiterung „Lokale Spracherkennung“ laden, GPU erkennen
     corrections.py              Satzzeichen-Befehle, Korrektur-Wörterbuch, Lernlogik
     hotkeys.py                  Globale Hotkeys (pynput)
     paste.py                    Clipboard + Auto-Paste
@@ -186,6 +211,8 @@ blitzvox/
     tray.py                     System-Tray + Menü
     workflow_window.py          Aufnahme-UI mit Waveform
     settings_window.py          Einstellungs-UI
+    setup_wizard.py             Einrichtungsassistent
+    key_popup.py                Fenster für API-Key-Anzeige und Hinweise
     correction_window.py        Fenster „Letzten Text korrigieren“
 ```
 
@@ -195,7 +222,7 @@ blitzvox/
 
 ```
 Online (Groq/OpenAI/Claude):  Dein PC → gewählter API-Anbieter
-Lokal (Ollama/faster-whisper): Dein PC → läuft komplett auf deiner eigenen Hardware
+Lokal (faster-whisper/Ollama): Dein PC → läuft komplett auf deiner eigenen Hardware
 ```
 
 Kein eigenes Backend. Audio und Text gehen direkt vom PC zum gewählten Anbieter.
