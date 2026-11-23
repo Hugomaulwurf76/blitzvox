@@ -78,7 +78,49 @@ def cuda_device_count() -> int:
 
 
 def install_mode() -> str:
-    """'windows' (Installer), 'linux' (.deb) oder 'source' (Quellcode)."""
+    """'windows' (Installer), 'linux' (.deb) oder 'source' (Quellcode).
+
+    Zum Testen aus dem Quellcode lässt sich die Installationsart vorgeben,
+    damit man die Texte sieht, die Endanwender sehen:
+      - Datei „testmodus.txt“ im Projektordner (neben main.py) mit dem Inhalt
+        windows  bzw.  linux   (gilt nur beim Start aus dem Quellcode), oder
+      - Umgebungsvariable BLITZVOX_INSTALL_MODE=windows bzw. linux
+    """
+    valid = ("windows", "linux", "source")
+    forced = os.environ.get("BLITZVOX_INSTALL_MODE", "").strip().lower()
+    if forced in valid:
+        return forced
     if not is_frozen():
+        try:
+            f = Path(__file__).resolve().parents[2] / "testmodus.txt"
+            forced = f.read_text(encoding="utf-8-sig").strip().lower()
+            if forced in valid:
+                return forced
+        except OSError:
+            pass
         return "source"
     return "windows" if platform.system() == "Windows" else "linux"
+
+
+def missing_message() -> str:
+    """Kurze Fehlermeldung fürs Workflow-Fenster, wenn „Lokal“ gewählt ist,
+    die Erweiterung aber fehlt: sagt direkt, was je nach Installation zu tun ist."""
+    from .. import __version__
+    mode = install_mode()
+    if addon_dir().is_dir() and load_error():
+        return ("Die lokale Spracherkennung ist vorhanden, lässt sich aber nicht laden:\n"
+                f"{load_error()}")
+    msg = "Die lokale Spracherkennung ist nicht installiert.\n"
+    if mode == "windows":
+        msg += ("BlitzVox beenden, den Installer erneut ausführen und bei "
+                "„Komponenten auswählen“ den Haken bei „Lokale Spracherkennung“ setzen.")
+    elif mode == "linux":
+        msg += ("Zusatzpaket von den GitHub-Releases installieren:\n"
+                f"sudo apt install ./blitzvox-lokal_{__version__}_amd64.deb\n"
+                "Danach BlitzVox neu starten.")
+    else:
+        msg += ("In das Python, mit dem BlitzVox läuft, installieren:\n"
+                "pip install faster-whisper\n"
+                "Danach BlitzVox neu starten.")
+    msg += "\nOder in den Einstellungen einen Online-Dienst wählen."
+    return msg
