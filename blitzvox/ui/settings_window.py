@@ -426,7 +426,21 @@ class SettingsWindow(QWidget):
         provider_combo.currentIndexChanged.connect(
             lambda: self._fill_stt_models(cb, provider_combo.currentData(), "")
         )
+        provider_combo.currentIndexChanged.connect(
+            lambda: self._check_local_available(provider_combo)
+        )
         return cb
+
+    def _check_local_available(self, provider_combo: QComboBox) -> None:
+        """Wird „Lokal“ gewählt und fehlt die Erweiterung, sofort die Anleitung zeigen."""
+        if provider_combo.currentData() != STTProvider.LOCAL:
+            return
+        from ..services import local_addon
+        if local_addon.is_available():
+            return
+        from PyQt6.QtCore import QTimer
+        from .setup_wizard import show_local_help
+        QTimer.singleShot(0, lambda: show_local_help(self))
 
     def _fill_stt_models(self, cb: QComboBox, provider: str, keep_text: str) -> None:
         cb.blockSignals(True)

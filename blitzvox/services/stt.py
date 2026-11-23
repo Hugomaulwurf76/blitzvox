@@ -203,10 +203,7 @@ async def _transcribe_local(audio_path: Path, cfg: WorkflowModelConfig,
                             prompt: str = "") -> str:
     from . import local_addon
     if not local_addon.is_available():
-        raise STTError(
-            "Die lokale Spracherkennung ist nicht installiert.\n"
-            "Einstellungen → Erweitert → „Einrichtungsassistent starten“ zeigt, "
-            "wie du sie einrichtest.")
+        raise STTError(local_addon.missing_message())
     from faster_whisper import WhisperModel
 
     import asyncio
