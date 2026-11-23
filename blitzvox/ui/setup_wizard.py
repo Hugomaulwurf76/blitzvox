@@ -348,7 +348,7 @@ def local_help_items() -> list:
                      f'(Download: <a href="{RELEASES_URL}">GitHub-Releases</a>).<br>'
                      "3. Bei „Komponenten auswählen“ den Haken bei "
                      "„Lokale Spracherkennung“ setzen.<br>"
-                     "4. BlitzVox starten und den Assistenten erneut aufrufen."),
+                     "4. BlitzVox wieder starten."),
         ]
     elif mode == "linux":
         items += [
@@ -357,14 +357,14 @@ def local_help_items() -> list:
                      f'<a href="{RELEASES_URL}">GitHub-Releases</a> herunterladen.<br>'
                      "2. Im Terminal im Download-Ordner installieren:"),
             ("code", f"sudo apt install ./blitzvox-lokal_{__version__}_amd64.deb"),
-            ("text", "3. BlitzVox beenden, neu starten und den Assistenten erneut aufrufen."),
+            ("text", "3. BlitzVox beenden und wieder starten."),
         ]
     else:
         items += [
             ("text", "Du startest BlitzVox aus dem Quellcode. Installiere faster-whisper in "
                      "das Python, mit dem BlitzVox läuft:"),
             ("code", f'"{sys.executable}" -m pip install faster-whisper'),
-            ("text", "Danach BlitzVox beenden, neu starten und den Assistenten erneut aufrufen."),
+            ("text", "Danach BlitzVox beenden und wieder starten."),
         ]
     err = local_addon.load_error()
     if err and local_addon.addon_dir().is_dir():

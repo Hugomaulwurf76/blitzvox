@@ -256,6 +256,8 @@ class WorkflowWindow(QWidget):
         set_prop(self.record_btn, "variant", "primary")
         self.status_label.setText("Bereit")
         set_prop(self.status_label, "role", "status")
+        self.status_label.setMinimumHeight(0)   # Höhe der Fehlermeldung wieder freigeben
+        self.adjustSize()   # nach einer langen Fehlermeldung wieder verkleinern
 
     def _set_done(self, text: str) -> None:
         self.record_btn.setText("🎙  Neue Aufnahme")
@@ -300,6 +302,13 @@ class WorkflowWindow(QWidget):
         set_prop(self.record_btn, "variant", "primary")
         self.status_label.setText(f"❌  {message}")
         set_prop(self.status_label, "role", "error")
+        # Mehrzeilige Meldungen (z. B. „Lokale Spracherkennung fehlt“) sonst abgeschnitten.
+        # adjustSize() allein reicht nicht überall (unter Linux fehlten Zeilen):
+        # nötige Höhe für die tatsächliche Breite selbst berechnen und festlegen.
+        m = self.layout().contentsMargins()
+        width = self.status_label.width() or (self.width() - m.left() - m.right())
+        self.status_label.setMinimumHeight(self.status_label.heightForWidth(width))
+        self.adjustSize()
 
     def _copy_result(self) -> None:
         from PyQt6.QtWidgets import QApplication
