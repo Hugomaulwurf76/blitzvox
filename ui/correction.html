@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>BlitzVox – Text korrigieren</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    main {
+      padding: 24px 24px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    #editor {
+      width: 100%;
+      min-height: 120px;
+      height: 140px;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    #suggestions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .buttons button {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <main id="main">
+    <div class="display-sm">✏  Letzten Text korrigieren</div>
+    <div class="hint">Korrigiere falsch erkannte Wörter. BlitzVox schlägt vor, was es sich merken kann.</div>
+    <textarea id="editor" spellcheck="false"></textarea>
+    <div class="label">Merken (nur echte Hörfehler anhaken):</div>
+    <div id="suggestions">
+      <div class="hint" id="empty">Noch keine Änderung erkannt.</div>
+    </div>
+    <div class="success-text" id="status"></div>
+    <div class="buttons">
+      <button id="apply" class="primary">✅  Übernehmen &amp; kopieren</button>
+      <button id="close">Schließen</button>
+    </div>
+  </main>
+  <script src="keys.js"></script>
+  <script src="correction.js"></script>
+</body>
+</html>

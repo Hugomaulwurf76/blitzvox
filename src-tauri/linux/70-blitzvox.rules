@@ -1,0 +1,6 @@
+# BlitzVox: Tastenkürzel und automatisches Einfügen unter Wayland.
+# Gibt dem gerade angemeldeten Benutzer (uaccess) Lesezugriff auf Tastaturen
+# und Schreibzugriff auf /dev/uinput (virtuelle Tastatur für Strg+V).
+# Hinweis: Damit kann jedes Programm dieses Benutzers Tastendrücke mitlesen.
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_KEYBOARD}=="1", TAG+="uaccess"
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"

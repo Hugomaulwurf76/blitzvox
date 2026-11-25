@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>BlitzVox – Einrichtung</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    html, body {
+      height: 100%;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    #pages {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .page {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: 28px 32px 16px 32px;
+    }
+    .page.active {
+      display: flex;
+    }
+    .page .body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    footer {
+      border-top: 1px solid var(--hairline-strong);
+      padding: 8px 32px 20px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .footer-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .footer-row .grow {
+      flex: 1;
+    }
+    .error-text {
+      color: var(--error);
+      font-weight: 500;
+      white-space: pre-wrap;
+    }
+    .success-line {
+      color: var(--success);
+      font-weight: 500;
+      white-space: pre-wrap;
+    }
+    .hint-line {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+    .status-line {
+      color: var(--body);
+      white-space: pre-wrap;
+    }
+    .overview {
+      color: #16a34a; /* helleres Grün, auf hellem Grund gut lesbar (wie 1.0.8) */
+      font-weight: 600;
+    }
+    .infobox {
+      background: var(--surface-card);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 10px;
+      padding: 12px 16px 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 80%;
+      align-self: center;
+    }
+    .keyrow {
+      display: flex;
+      gap: 8px;
+    }
+    .keyrow input {
+      flex: 1;
+    }
+    .level {
+      height: 14px;
+      background: var(--surface-strong);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    .level > div {
+      height: 100%;
+      width: 0%;
+      background: var(--success);
+      border-radius: 6px;
+    }
+    .hk-grid {
+      display: grid;
+      grid-template-columns: max-content 3fr 2fr;
+      gap: 4px 12px;
+      align-items: center;
+    }
+    .hk-grid .span {
+      grid-column: 1 / span 3;
+      margin-bottom: 8px;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .row input {
+      flex: 1;
+    }
+    a {
+      color: var(--ink);
+    }
+    #summary b {
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <div id="pages"></div>
+  <footer>
+    <div class="error-text hidden" id="error"></div>
+    <div class="footer-row">
+      <span class="hint" id="step"></span>
+      <span class="grow"></span>
+      <button class="text" id="cancel">Abbrechen</button>
+      <button id="back">Zurück</button>
+      <button class="primary" id="next">Weiter</button>
+    </div>
+  </footer>
+
+  <div class="overlay hidden" id="key-overlay">
+    <div class="popup" style="width: 460px">
+      <div class="head">
+        <span class="strong" id="key-title"></span>
+        <button class="text" id="key-close" title="Schließen (Esc)">✕</button>
+      </div>
+      <div class="mono" id="key-text"></div>
+      <div class="hint">Zum Kopieren markieren und Strg+C drücken.</div>
+    </div>
+  </div>
+
+  <script src="keys.js"></script>
+  <script src="common.js"></script>
+  <script src="wizard.js"></script>
+</body>
+</html>

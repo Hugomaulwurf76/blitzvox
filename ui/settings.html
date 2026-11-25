@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>BlitzVox – Einstellungen</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    html, body {
+      height: 100%;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    .pane {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 14px 20px 20px 20px;
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .pane.active {
+      display: flex;
+    }
+    .footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 12px 20px 18px 20px;
+      border-top: 1px solid var(--hairline);
+    }
+    .keyrow {
+      display: flex;
+      gap: 8px;
+    }
+    .keyrow input {
+      flex: 1;
+    }
+    .keyrow button {
+      min-width: 80px;
+    }
+    textarea.prompt {
+      width: 100%;
+    }
+    .hk-grid {
+      display: grid;
+      grid-template-columns: max-content 3fr 2fr;
+      gap: 10px 12px;
+      align-items: center;
+    }
+    .hk-grid .span {
+      grid-column: 1 / span 3;
+    }
+    .hk-field {
+      cursor: text;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+    .row input {
+      flex: 1;
+    }
+    .right {
+      align-self: flex-end;
+    }
+    .left {
+      align-self: flex-start;
+    }
+    .tablewrap {
+      min-height: 180px;
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid var(--hairline-strong);
+    }
+    .tablewrap table.grid {
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="tabbar" id="tabbar">
+    <button data-tab="api" class="active">🔑  API-Zugänge</button>
+    <button data-tab="workflows">⚙  Workflows</button>
+    <button data-tab="hotkeys">⌨  Hotkeys</button>
+    <button data-tab="corrections">📝  Korrekturen</button>
+    <button data-tab="advanced">🔧  Erweitert</button>
+  </div>
+
+  <!-- ── API-Zugänge ─────────────────────────────── -->
+  <div class="pane active" id="tab-api">
+    <div class="lead">👉 Kostenlos starten: https://console.groq.com  (STT + LLM gratis)</div>
+    <div id="keys-top"></div>
+
+    <section class="card">
+      <h3>Lokal – Ollama (eigenes Programm)</h3>
+      <div class="form">
+        <span>Basis-URL:</span><input type="text" id="ollama-url" placeholder="http://localhost:11434">
+        <span>Modell:</span><input type="text" id="ollama-model" placeholder="llama3.2">
+      </div>
+    </section>
+
+    <div id="keys-or"></div>
+
+    <section class="card">
+      <h3>OpenRouter – Modell</h3>
+      <div class="form">
+        <span>Modell:</span><span id="or-model-slot"></span>
+        <span></span><span class="hint" id="or-status">Modelle werden geladen …</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Eigene Endpunkte (OpenAI-kompatibel)</h3>
+      <div class="form">
+        <span>STT-Endpunkt:</span><input type="text" id="custom-stt-url" placeholder="https://…/v1/audio/transcriptions">
+        <span>LLM-Endpunkt:</span><input type="text" id="custom-llm-url" placeholder="https://…/v1/chat/completions">
+        <span>STT-Key (optional):</span><input type="password" id="key-custom_stt_api_key">
+        <span>LLM-Key (optional):</span><input type="password" id="key-custom_llm_api_key">
+      </div>
+    </section>
+  </div>
+
+  <!-- ── Workflows ───────────────────────────────── -->
+  <div class="pane" id="tab-workflows" style="gap: 16px"></div>
+
+  <!-- ── Hotkeys ─────────────────────────────────── -->
+  <div class="pane" id="tab-hotkeys">
+    <div class="lead">Mit Tastenkürzeln startest du BlitzVox aus jedem Programm heraus, ohne ein Fenster zu öffnen. Mit Auto-Paste (Tab Erweitert) landet der Text dort, wo der Cursor steht, sonst in der Zwischenablage.</div>
+    <label class="check"><input type="checkbox" id="hk-enabled"><span>Globale Hotkeys aktivieren</span></label>
+    <div class="hint">Ist der Haken gesetzt, funktionieren die Tastenkürzel unten in jedem Programm. Ohne Haken reagiert BlitzVox auf kein Tastenkürzel – auch nicht auf „Korrigieren“. Die Workflows erreichst du dann nur über das BlitzVox-Symbol im Tray. Die Änderung gilt sofort nach „Speichern“.</div>
+    <section class="card" id="hk-card">
+      <h3>Tastenkürzel</h3>
+      <div class="hk-grid" id="hk-grid">
+        <span class="label">Workflow</span><span class="label">Tastenkürzel</span><span class="label">Modus</span>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── Korrekturen ─────────────────────────────── -->
+  <div class="pane" id="tab-corrections" style="gap: 12px">
+    <section class="card">
+      <h3>Satzzeichen</h3>
+      <label class="check"><input type="checkbox" id="spoken-punct"><span>Satzzeichen per Sprachmodell setzen (inkl. diktierter Befehle)</span></label>
+      <div class="hint" style="white-space: pre-wrap">Befehle: Komma, Punkt, Fragezeichen, Ausrufezeichen, Doppelpunkt, Semikolon, Bindestrich, Gedankenstrich, neue Zeile, neuer Absatz, Klammer auf/zu, Anführungszeichen auf/zu.
+Bei „BlitzVox“ (reine Transkription) wird dafür bei jedem Diktat das Sprachmodell aus „BlitzVox+“ aufgerufen. Ist es nicht erreichbar, greifen einfache Regeln.</div>
+    </section>
+    <section class="card">
+      <h3>Gelernte Korrekturen</h3>
+      <div class="hint">Werden nach der Erkennung ersetzt; die richtige Schreibweise geht außerdem als Hinweis an die Spracherkennung. Neue Einträge entstehen über „Letzten Text korrigieren …“ im Tray-Menü oder hier. Änderungen in dieser Liste werden sofort gespeichert.</div>
+      <div class="tablewrap">
+        <table class="grid">
+          <thead><tr><th>Erkannt (falsch)</th><th>Ersetzen durch</th></tr></thead>
+          <tbody id="corr-body"></tbody>
+        </table>
+      </div>
+      <div class="row">
+        <input type="text" id="corr-wrong" placeholder="falsch, z. B. Proxmocks">
+        <input type="text" id="corr-right" placeholder="richtig, z. B. Proxmox">
+        <button class="primary" id="corr-add">Hinzufügen</button>
+      </div>
+      <button class="right" id="corr-delete">Ausgewählte löschen</button>
+    </section>
+  </div>
+
+  <!-- ── Erweitert ───────────────────────────────── -->
+  <div class="pane" id="tab-advanced" style="gap: 12px">
+    <label class="check"><input type="checkbox" id="auto-paste"><span>Text automatisch in fokussiertes Fenster einfügen</span></label>
+    <div class="hint" style="white-space: pre-wrap" id="paste-note"></div>
+    <label class="check"><input type="checkbox" id="launch"><span id="launch-label"></span></label>
+    <section class="card">
+      <h3>🎤  Mikrofon</h3>
+      <div class="form">
+        <span>Aufnahmegerät:</span><select id="mic"><option value="">System-Standard</option></select>
+      </div>
+    </section>
+    <section class="card">
+      <h3>🧭  Einrichtung</h3>
+      <div class="hint">Führt Schritt für Schritt durch Spracherkennung, Mikrofon, Tastenkürzel und ein Probediktat. Dieses Fenster wird dabei geschlossen; nicht gespeicherte Änderungen gehen verloren.</div>
+      <button class="left" id="wizard">Einrichtungsassistent starten</button>
+    </section>
+    <section class="card">
+      <h3>ℹ️  Über BlitzVox</h3>
+      <div class="form">
+        <span>Aktuelle Version:</span><span class="strong" id="version"></span>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer">
+    <button id="cancel">Abbrechen</button>
+    <button id="save" class="primary">Speichern</button>
+  </div>
+
+  <div class="overlay hidden" id="key-overlay">
+    <div class="popup" style="width: 460px">
+      <div class="head">
+        <span class="strong" id="key-title"></span>
+        <button class="text" id="key-close" title="Schließen (Esc)">✕</button>
+      </div>
+      <div class="mono" id="key-text"></div>
+      <div class="hint">Zum Kopieren markieren und Strg+C drücken.</div>
+    </div>
+  </div>
+
+  <script src="keys.js"></script>
+  <script src="common.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

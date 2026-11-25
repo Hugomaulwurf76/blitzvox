@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "blitzvox",
+  "mainBinaryName": "blitzvox",
+  "bundle": {
+    "targets": ["deb"],
+    "category": "Utility",
+    "shortDescription": "Sprache zu Text für Linux",
+    "longDescription": "Diktierprogramm mit Tray-Symbol und globalen Tastenkürzeln. Eigene API-Keys nötig (Groq, OpenAI, Anthropic …) oder lokale Spracherkennung mit whisper.cpp.",
+    "linux": {
+      "deb": {
+        "section": "utils",
+        "depends": ["libvulkan1", "xdotool"],
+        "recommends": ["wtype", "ydotool"],
+        "conflicts": ["blitzvox-lokal"],
+        "replaces": ["blitzvox-lokal"],
+        "files": {
+          "/usr/lib/udev/rules.d/70-blitzvox.rules": "linux/70-blitzvox.rules",
+          "/usr/lib/modules-load.d/blitzvox.conf": "linux/blitzvox-uinput.conf"
+        },
+        "desktopTemplate": "linux/blitzvox.desktop",
+        "postInstallScript": "linux/postinst.sh",
+        "postRemoveScript": "linux/postrm.sh"
+      }
+    }
+  }
+}
