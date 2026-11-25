@@ -1,22 +1,37 @@
-# BlitzVox Cross-Platform
+# BlitzVox
 
-**Speech-to-text desktop app for Windows 11 and Linux Debian.**
+**Spracheingabe per Tastenkürzel für Windows 11 und Linux (Debian, Ubuntu, Linux Mint).**
 
-A Python/PyQt6 fork of the concept from [cmagnussen/blitztext-app](https://github.com/cmagnussen/blitztext-app) (macOS original, MIT license).
+Inspiriert von [cmagnussen/blitztext-app](https://github.com/cmagnussen/blitztext-app) (macOS-Original, MIT-Lizenz).
 
-> Bring your own API key — no backend, no telemetry, no warranty.
+> Eigene API-Keys oder komplett lokal – kein eigenes Backend, keine Telemetrie, keine Gewähr.
+
+Ab Version 2.0 ist BlitzVox in Rust mit [Tauri 2](https://v2.tauri.app) neu geschrieben. Funktionen und Bedienung entsprechen 1.0.8, Einstellungen, API-Keys und gelernte Korrekturen werden beim Update übernommen. Die frühere Python-Version liegt unter dem Tag [`v1.0.8`](https://github.com/Hugomaulwurf76/blitzvox/tree/v1.0.8).
 
 ---
 
 ## Was die App macht
 
-| Workflow | Hotkey (Standard) | Beschreibung |
+| Workflow | Tastenkürzel (Standard) | Beschreibung |
 |---|---|---|
-| 🎙 **BlitzVox** | `Ctrl+Alt+W` | Sprache → Text (nur Transkription) |
-| ✨ **BlitzVox+** | `Ctrl+Alt+B` | Sprache → Transkription → Text verbessert |
-| 🔥 **BlitzVox $%&!** | `Ctrl+Alt+F` | Frustrierte Sprache → ruhige Nachricht |
-| 😊 **BlitzVox :)** | `Ctrl+Alt+J` | Sprache → Text mit passenden Emojis |
-| ✏ **Letzten Text korrigieren** | `Ctrl+Alt+K` | Korrekturfenster öffnen, BlitzVox lernt daraus |
+| 🎙 **BlitzVox** | `Strg+Alt+W` | Sprache → Text (nur Transkription) |
+| ✨ **BlitzVox+** | `Strg+Alt+B` | Sprache → Transkription → verbesserter Text |
+| 🔥 **BlitzVox $%&!** | `Strg+Alt+F` | Frustrierte Sprache → ruhige Nachricht |
+| 😊 **BlitzVox :)** | `Strg+Alt+J` | Sprache → Text mit passenden Emojis |
+| ✏ **Letzten Text korrigieren** | `Strg+Alt+K` | Korrekturfenster öffnen, BlitzVox lernt daraus |
+
+Jedes Kürzel kann **gehalten** (sprechen, solange die Tasten gedrückt sind) oder **umgeschaltet** werden (einmal drücken zum Starten, noch einmal zum Beenden). Der Text landet in der Zwischenablage und wird auf Wunsch direkt dort eingefügt, wo der Cursor steht.
+
+---
+
+## Neu in 2.0
+
+- **Komplett neu in Rust/Tauri:** Setup rund 19 MB statt 91 MB, installiert rund 80 MB statt 380 MB.
+- **Lokale Spracherkennung fest eingebaut** (whisper.cpp), keine Erweiterung mehr nötig. Die Grafikkarte wird über **Vulkan** genutzt – NVIDIA, AMD und Intel, ohne CUDA. Ohne passende Grafikkarte rechnet der Prozessor.
+- **Linux mit Wayland:** Tastenkürzel und automatisches Einfügen funktionieren jetzt auch unter Wayland (siehe [Linux und Wayland](#linux-und-wayland)).
+- **Mikrofonwahl** wird stabil über die Geräte-ID gespeichert. Wer in 1.0.8 ein bestimmtes Mikrofon gewählt hatte, muss es nach dem Update einmal neu auswählen.
+- **Stille wird verworfen:** Ergibt eine Aufnahme nur Satzzeichen (z. B. ein einzelnes „Komma“), erscheint „Keine Sprache erkannt.“ und das Fenster schließt sich nach 2 Sekunden.
+- Dampf ablassen hält die Nachricht jetzt kurz (Zusatz in der Standard-Anweisung).
 
 ---
 
@@ -43,7 +58,7 @@ Bei **BlitzVox** (reine Transkription) setzt das Sprachmodell aus „BlitzVox+�
 
 BlitzVox lernt aus deinen Korrekturen, z. B. wenn ein Name oder Fachbegriff immer falsch erkannt wird.
 
-1. `Ctrl+Alt+K` oder Rechtsklick auf das Tray-Icon → **„Letzten Text korrigieren …“**
+1. `Strg+Alt+K` oder Tray-Symbol → **„Letzten Text korrigieren …“**
 2. Text im Fenster korrigieren. BlitzVox zeigt Vorschläge wie „Proxmocks → Proxmox“.
 3. Nur echte Hörfehler anhaken (standardmäßig ist nichts angehakt, damit Stiländerungen wie „dann → danach“ nicht gelernt werden).
 4. **„Übernehmen & kopieren“** speichert die Haken und legt den korrigierten Text in die Zwischenablage.
@@ -59,161 +74,134 @@ Reine Groß-/Kleinschreibung und Satzzeichen werden nicht gelernt, das erledigt 
 ### Transkription (STT)
 | Anbieter | Was du brauchst |
 |---|---|
-| **Groq Whisper** *(Standard, kostenlos)* | Groq API Key |
-| **OpenAI Whisper API** | OpenAI API Key |
-| **AssemblyAI** | AssemblyAI API Key |
-| **OpenRouter** (Whisper-Modelle) | OpenRouter API Key |
-| **Lokal – faster-whisper (offline)** | Erweiterung „Lokale Spracherkennung“ (siehe unten), kein Key nötig |
+| **Groq Whisper** *(Standard, kostenlos)* | Groq API-Key |
+| **OpenAI Whisper API** | OpenAI API-Key |
+| **AssemblyAI** | AssemblyAI API-Key |
+| **OpenRouter** (Whisper-Modelle) | OpenRouter API-Key |
+| **Lokal – whisper.cpp (offline)** | nichts, das Modell wird beim ersten Diktat einmalig heruntergeladen |
 | **Eigener Endpunkt** | OpenAI-kompatibler Endpunkt |
 
-### LLM (Textverarbeitung)
+### Sprachmodell (Textverarbeitung)
 | Anbieter | Was du brauchst |
 |---|---|
-| **Groq** *(Standard, kostenlos)* | Groq API Key |
-| **OpenAI** | OpenAI API Key |
-| **Claude (Anthropic)** | Anthropic API Key |
-| **OpenRouter** (alle Modelle) | OpenRouter API Key |
+| **Groq** *(Standard, kostenlos)* | Groq API-Key |
+| **OpenAI** | OpenAI API-Key |
+| **Claude (Anthropic)** | Anthropic API-Key |
+| **OpenRouter** (alle Modelle) | OpenRouter API-Key |
 | **Lokal – Ollama (eigenes Programm)** | [Ollama](https://ollama.com) installiert und gestartet, mindestens ein Modell geladen (`ollama pull <Modellname>`), erreichbar unter localhost:11434 |
 | **Eigener Endpunkt** | OpenAI-kompatibler Endpunkt |
 
-Jeden Workflow kannst du **unabhängig** konfigurieren — z.B. BlitzVox mit Groq-Whisper, BlitzVox+ mit lokalem Ollama.
+Jeden Workflow kannst du **unabhängig** konfigurieren – z. B. BlitzVox mit Groq Whisper, BlitzVox+ mit lokalem Ollama.
 
-> ⚠️ Bei Groq: Modellauswahl in den Einstellungen ist eine editierbare Vorschlagsliste. Groq deprecatet Modelle regelmäßig — falls ein Modell mit „404 does not exist" fehlschlägt, ein anderes aus der Liste wählen bzw. auf console.groq.com/docs/models nachsehen, welches aktuell auf deinem Tarif (Free/Developer vs. Enterprise) verfügbar ist.
+> ⚠️ Bei Groq: Die Modellauswahl in den Einstellungen ist eine editierbare Vorschlagsliste. Groq nimmt Modelle regelmäßig aus dem Angebot – schlägt ein Modell mit „404 does not exist“ fehl, ein anderes aus der Liste wählen bzw. auf console.groq.com/docs/models nachsehen, welches für deinen Tarif verfügbar ist.
+
+### Lokale Spracherkennung
+Unter Einstellungen → Workflows bzw. im Einrichtungsassistenten „Lokal – whisper.cpp (offline)“ und eine Modellgröße wählen (`tiny`, `base`, `small`, `medium`; 78 MB bis 1,5 GB). Das Modell wird beim ersten Diktat einmalig heruntergeladen und liegt danach unter `%LOCALAPPDATA%\blitzvox\models` (Windows) bzw. `~/.local/share/blitzvox/models` (Linux). Die früheren faster-whisper-Modelle aus 1.0.8 sind nicht kompatibel und können gelöscht werden.
 
 ---
 
 ## Installation
 
-### Voraussetzungen
-- Für das Setup unter Windows: nichts. Das Setup bringt alles mit.
-- Für Entwicklung aus dem Quellcode: Python 3.10 oder neuer
-- Auf Linux: das Install-Skript richtet `portaudio19-dev`, `xdotool`/`wtype` etc. automatisch ein (per `sudo apt-get`)
+### Windows 11
+1. `BlitzVox_2.0.0_x64-setup.exe` aus den [Releases](https://github.com/Hugomaulwurf76/blitzvox/releases) herunterladen und ausführen.
+2. Windows fragt nach Administratorrechten. Die Installation erfolgt für alle Benutzer nach `C:\Program Files\BlitzVox`, mit Startmenü-Eintrag. Eine Desktop-Verknüpfung lässt sich auf der letzten Seite des Setups anhaken.
+3. Ist **BlitzVox 1.0.8** installiert, entfernt das Setup es automatisch. Einstellungen, API-Keys, Korrekturen und Autostart bleiben erhalten.
+4. Fehlt auf dem PC die Vulkan-Laufzeit (`vulkan-1.dll`, kommt normalerweise mit dem Grafiktreiber), installiert das Setup die offizielle Vulkan-Laufzeit von LunarG mit.
 
-### Windows 11 (fertiges Setup)
-1. `BlitzVoxSetup-1.0.8.exe` aus den Releases herunterladen und ausführen.
-2. Windows fragt nach Administratorrechten. Die Installation erfolgt immer für alle Benutzer nach `C:\Program Files\BlitzVox`.
-3. Bei „Komponenten auswählen“ entscheidest du, ob die **lokale Spracherkennung** (offline, ohne API-Key) mitinstalliert wird. Ohne Haken bleibt BlitzVox klein und nutzt Online-Dienste wie Groq.
-4. Der Assistent legt einen Startmenü-Eintrag an, optional auch eine Desktop-Verknüpfung.
-5. Autostart mit Windows: Einstellungen → Erweitert → „Mit Windows starten“.
+Das Setup ist nicht code-signiert. Windows SmartScreen oder ein Virenscanner können deshalb warnen: „Weitere Informationen“ → „Trotzdem ausführen“.
 
-Die lokale Spracherkennung lässt sich später nachrüsten oder entfernen: Setup erneut ausführen und den Haken setzen bzw. entfernen.
-
-### Windows 11 (aus dem Quellcode)
-```cmd
-git clone https://github.com/Hugomaulwurf76/blitzvox.git
-cd blitzvox
-install_windows.bat
-start.bat
-```
-
-`install_windows.bat` installiert die Python-Pakete in das gefundene Python und erzeugt `start.bat`. Ist kein passendes Python vorhanden, verlinkt das Skript direkt zum Download.
-
-### Linux (Debian/Ubuntu, fertiges Paket)
-`blitzvox_1.0.8_amd64.deb` aus den Releases herunterladen und installieren:
+### Linux (Debian, Ubuntu, Linux Mint, Zorin OS; 64 Bit)
+`blitzvox_2.0.0_amd64.deb` aus den [Releases](https://github.com/Hugomaulwurf76/blitzvox/releases) herunterladen und im Terminal installieren:
 ```bash
-sudo apt install ./blitzvox_1.0.8_amd64.deb
+sudo apt install ./blitzvox_2.0.0_amd64.deb
 ```
-Optional zusätzlich die **lokale Spracherkennung** (offline, ohne API-Key) als eigenes Paket:
-```bash
-sudo apt install ./blitzvox-lokal_1.0.8_amd64.deb
-```
-Danach im Anwendungsmenü „BlitzVox“ starten. Deinstallation: `sudo apt remove blitzvox-lokal blitzvox`.
+Danach im Anwendungsmenü „BlitzVox“ starten. Deinstallation: `sudo apt remove blitzvox`.
 
-### Windows-Setup selbst bauen (Entwickler)
-Im Ordner `BlitzVoxEXE`:
-1. `build_exe.bat` ausführen. Es installiert die Build-Pakete, erzeugt `BlitzVox.ico` aus dem Tray-Icon und baut `dist\BlitzVox\BlitzVox.exe` mit PyInstaller.
-2. `build_lokal.bat` ausführen. Es füllt den Ordner `lokal` mit faster-whisper (Erweiterung „Lokale Spracherkennung“, mit demselben Python wie die EXE).
-3. `BlitzVox.iss` mit dem [Inno Setup Compiler](https://jrsoftware.org/isdl.php) öffnen und kompilieren. Das Ergebnis liegt in `output\BlitzVoxSetup-1.0.8.exe`.
+Update von 1.0.8: Das Paket ersetzt `blitzvox` 1.0.8 und entfernt die nicht mehr benötigte Erweiterung `blitzvox-lokal`. Installiere dafür im Terminal wie oben – grafische Installationsprogramme für einzelne .deb-Dateien entfernen andere Pakete oft nicht und brechen dann ab. In dem Fall vorher `sudo apt remove blitzvox-lokal blitzvox` ausführen; Einstellungen und Keys bleiben erhalten.
 
-### Linux-Pakete selbst bauen (Entwickler)
-Im Ordner `BlitzVoxDEB` auf Debian/Ubuntu/Linux Mint:
-1. `bash build_deb.sh` baut `blitzvox_1.0.8_amd64.deb`.
-2. `bash build_lokal_deb.sh` baut das Zusatzpaket `blitzvox-lokal_1.0.8_amd64.deb`. Auf demselben System bauen wie das Hauptpaket, damit die Python-Version passt.
-
-### Linux (Debian/Ubuntu)
-```bash
-git clone https://github.com/Hugomaulwurf76/blitzvox.git
-cd blitzvox
-chmod +x install_linux.sh
-./install_linux.sh
-./start.sh
-```
-
-`install_linux.sh` erkennt automatisch ein passendes Python (≥3.10), legt ein eigenes `.venv` an, installiert alle System- und Python-Abhängigkeiten und erzeugt `start.sh`.
-
-Autostart beim Anmelden: Einstellungen → Erweitert → „Beim Anmelden starten“. Das legt `~/.config/autostart/blitzvox.desktop` an und entfernt die Datei wieder, wenn du die Option ausschaltest.
-
-### Lokale Spracherkennung (offline, kein API-Key)
-Die Spracherkennung kann komplett auf deinem Rechner laufen (faster-whisper). Weil das den Download deutlich vergrößert, ist sie eine Erweiterung:
-- **Windows-Setup:** bei „Komponenten auswählen“ den Haken setzen.
-- **Linux:** zusätzlich das Paket `blitzvox-lokal` installieren (siehe oben).
-- **Aus dem Quellcode:** `pip install faster-whisper` in das Python, mit dem BlitzVox läuft.
-
-Dann im Einrichtungsassistenten bzw. unter Einstellungen → Workflows „Lokal – faster-whisper (offline)“ und eine Modellgröße wählen. Das Modell wird beim ersten Diktat einmalig heruntergeladen.
-
-**Grafikkarte (GPU):** Mit einer NVIDIA-Grafikkarte rechnet die lokale Erkennung deutlich schneller. Dafür brauchst du eine NVIDIA-Grafikkarte, einen aktuellen NVIDIA-Treiber sowie CUDA 12 und cuDNN 9 von NVIDIA ([CUDA](https://developer.nvidia.com/cuda-downloads), [cuDNN](https://developer.nvidia.com/cudnn)). Ist das vorhanden, nutzt BlitzVox die Grafikkarte automatisch, sonst den Prozessor. AMD- und Intel-Grafikkarten werden nicht unterstützt.
+### Linux und Wayland
+- **X11:** Tastenkürzel über die X11-Erweiterung RECORD, Einfügen über `xdotool` (wird mitinstalliert).
+- **Wayland:** BlitzVox liest die Tastatur direkt (`/dev/input`) und fügt über eine eigene virtuelle Tastatur (`/dev/uinput`) ein. Dafür richtet das Paket eine udev-Regel ein (`/usr/lib/udev/rules.d/70-blitzvox.rules`), die dem angemeldeten Benutzer Zugriff auf Tastaturen und `/dev/uinput` gibt. **Hinweis:** Damit kann jedes Programm dieses Benutzers Tastendrücke mitlesen – wie bei ydotool und ähnlichen Werkzeugen. Wer das nicht möchte, kann die Regel löschen; BlitzVox nutzt dann, falls vorhanden, die Kürzel-Schnittstelle des Desktops (Portal „GlobalShortcuts“, z. B. KDE Plasma 6, GNOME ab 48), sonst wirken die Kürzel nur in X11-Programmen.
 
 ---
 
 ## Erster Start
 
-1. App starten: Startmenü bzw. Desktop-Verknüpfung (Windows), Anwendungsmenü bzw. `./start.sh` (Linux)
-2. Der **Einrichtungsassistent** führt Schritt für Schritt durch Sprache, Spracherkennung, KI-Funktionen, Mikrofon, Tastenkürzel und ein Probediktat. Du kannst ihn jederzeit unter Einstellungen → Erweitert → „Einrichtungsassistent starten“ erneut aufrufen.
-3. Tray-Icon erscheint in der Taskleiste. Windows 11 legt neue Tray-Icons oft im Überlauf (`^`) ab. Unter „Einstellungen → Personalisierung → Taskleiste → Andere Taskleistensymbole“ lässt es sich dauerhaft einblenden.
-4. Diktieren: Tastenkürzel drücken (Standard `Ctrl+Alt+W`) oder Rechtsklick auf das Tray-Icon → BlitzVox
+1. BlitzVox über das Startmenü bzw. Anwendungsmenü starten.
+2. Der **Einrichtungsassistent** führt durch Sprache, Spracherkennung, KI-Funktionen, Mikrofon, Tastenkürzel und ein Probediktat. Du kannst ihn jederzeit unter Einstellungen → Erweitert erneut aufrufen.
+3. Das Tray-Symbol erscheint in der Taskleiste. Windows 11 legt neue Symbole oft im Überlauf (`^`) ab; unter „Einstellungen → Personalisierung → Taskleiste → Andere Taskleistensymbole“ lässt es sich dauerhaft einblenden.
+4. Diktieren: Tastenkürzel drücken (Standard `Strg+Alt+W`) oder über das Tray-Menü.
 
-Unter Linux öffnet ein Linksklick auf das Tray-Icon kein Popup (Wayland-Einschränkung). Dort nutzt du den Rechtsklick.
+Autostart: Einstellungen → Erweitert → „Mit Windows starten“ bzw. „Beim Anmelden starten“.
 
 ---
 
 ## Konfiguration
 
-Einstellungen werden gespeichert in:
-- **Linux:** `~/.config/blitzvox/settings.json`
-- **Windows:** `%APPDATA%\blitzvox\settings.json`
+| | Windows | Linux |
+|---|---|---|
+| Einstellungen | `%APPDATA%\blitzvox\settings.json` | `~/.config/blitzvox/settings.json` |
+| Gelernte Korrekturen | `%APPDATA%\blitzvox\corrections.json` | `~/.config/blitzvox/corrections.json` |
+| Fehlerprotokoll | `%APPDATA%\blitzvox\error.log` | `~/.config/blitzvox/error.log` |
+| Modelle (lokal) | `%LOCALAPPDATA%\blitzvox\models` | `~/.local/share/blitzvox/models` |
 
-Gelernte Korrekturen liegen im selben Ordner in `corrections.json`.
+API-Keys liegen im Schlüsselbund des Systems (Windows-Anmeldeinformationen bzw. Secret Service), nicht in der `settings.json`. Das Format ist dasselbe wie in 1.0.8.
 
-API Keys werden im System-Keyring gespeichert (sicher, nicht im Klartext) — nicht in der `settings.json`.
+---
+
+## Selbst bauen (Entwickler)
+
+### Windows
+Voraussetzungen: [Rust](https://rustup.rs) (MSVC), Visual Studio 2022 mit „Desktopentwicklung mit C++“ und C++-CMake-Tools, LLVM/Clang (`LIBCLANG_PATH` gesetzt), [Vulkan SDK](https://vulkan.lunarg.com) (`VULKAN_SDK` gesetzt) und `cargo install tauri-cli --version 2.12.6 --locked`.
+
+```cmd
+dev.cmd     – Entwicklungsversion starten
+build.cmd   – Setup bauen (target\release\bundle\nsis\)
+```
+
+whisper.cpp scheitert unter Windows an zu langen Build-Pfaden. Die Skripte bauen deshalb nach `D:\bv`, einer Verknüpfung auf `target` (`mklink /J D:\bv <Projektordner>\target`); bei Bedarf in den Skripten anpassen.
+
+### Linux
+Die nötigen Pakete und Befehle stehen am Anfang von `build-linux.sh`. Danach:
+```bash
+bash build-linux.sh
+```
+Das Paket liegt anschließend in `src-tauri/target/release/bundle/deb/`.
+
+### Tests
+```bash
+cd src-tauri
+cargo test --lib
+```
+Die Testdaten in `src-tauri/tests/data` wurden mit den Skripten in `tools/` aus der Python-Version 1.0.8 erzeugt (Satzzeichen-Regeln und Prompts sind wortgleich).
 
 ---
 
 ## Projektstruktur
 
 ```
-main.py                         Einstiegspunkt
-install_windows.bat             Quellcode-Setup für Windows (Entwickler)
-install_linux.sh                Automatisches Setup für Linux
-requirements.txt                Python-Abhängigkeiten (pyautogui/pywin32 nur unter Windows)
-BlitzVoxEXE/
-  build_exe.bat                 baut dist\BlitzVox\BlitzVox.exe (Entwickler)
-  build_lokal.bat               baut die Erweiterung „Lokale Spracherkennung“ (Ordner lokal)
-  make_icon.py                  erzeugt BlitzVox.ico aus dem Tray-Icon
-  BlitzVox.spec                PyInstaller-Konfiguration
-  BlitzVox.iss                 Inno-Setup-Skript für BlitzVoxSetup-x.y.z.exe
-BlitzVoxDEB/
-  build_deb.sh                  baut blitzvox_x.y.z_amd64.deb
-  build_lokal_deb.sh            baut blitzvox-lokal_x.y.z_amd64.deb
-  blitzvox_linux.spec           PyInstaller-Konfiguration (Linux)
-blitzvox/
-  workflow.py                   Kernlogik aller 4 Workflows
-  services/
-    settings.py                 Konfiguration + Keyring + Modell-Vorschlagslisten
-    recorder.py                 Audioaufnahme (sounddevice)
-    stt.py                      STT-Anbieter (Groq/OpenAI/AssemblyAI/OpenRouter/lokal/custom)
-    llm.py                      LLM-Anbieter (Groq/OpenAI/Claude/OpenRouter/Ollama/custom)
-    local_addon.py              Erweiterung „Lokale Spracherkennung“ laden, GPU erkennen
-    corrections.py              Satzzeichen-Befehle, Korrektur-Wörterbuch, Lernlogik
-    hotkeys.py                  Globale Hotkeys (pynput)
-    paste.py                    Clipboard + Auto-Paste
-    autostart.py                Autostart mit Windows (Registry-Eintrag, Windows)
-  ui/
-    tray.py                     System-Tray + Menü
-    workflow_window.py          Aufnahme-UI mit Waveform
-    settings_window.py          Einstellungs-UI
-    setup_wizard.py             Einrichtungsassistent
-    key_popup.py                Fenster für API-Key-Anzeige und Hinweise
-    correction_window.py        Fenster „Letzten Text korrigieren“
+ui/                        Oberfläche (HTML/CSS/JS ohne Build-Schritt)
+  workflow.*               Aufnahmefenster mit Wellenform
+  settings.*               Einstellungen
+  wizard.*                 Einrichtungsassistent
+  correction.*             „Letzten Text korrigieren“
+  keys.js                  Tastenkürzel, wenn ein BlitzVox-Fenster den Fokus hat
+src-tauri/
+  src/app.rs               Programmrahmen: Tray, Fenster, Befehle
+  src/workflow.rs          Kernlogik aller vier Workflows
+  src/settings.rs          Einstellungen (kompatibel zu 1.0.8)
+  src/secrets.rs           API-Keys im System-Schlüsselbund
+  src/recorder.rs          Audioaufnahme
+  src/stt.rs, local_stt.rs Spracherkennung (Cloud, lokal mit whisper.cpp)
+  src/llm.rs               Sprachmodelle
+  src/corrections.rs       Satzzeichen-Befehle, Korrektur-Wörterbuch, Lernlogik
+  src/hotkeys.rs           Globale Tastenkürzel (Windows-Hook, X11, Wayland)
+  src/linux_input.rs       Wayland: Tastatur lesen, Portal, virtuelle Tastatur
+  src/paste.rs             Zwischenablage und automatisches Einfügen
+  src/autostart.rs         Autostart (Registry bzw. ~/.config/autostart)
+  windows/hooks.nsh        Setup: 1.0.8 entfernen, Vulkan-Laufzeit
+  linux/                   .deb: Menüeintrag, udev-Regel, Paketskripte
+tools/                     Erzeugen der Testdaten aus 1.0.8
 ```
 
 ---
@@ -221,8 +209,8 @@ blitzvox/
 ## Datenfluss
 
 ```
-Online (Groq/OpenAI/Claude):  Dein PC → gewählter API-Anbieter
-Lokal (faster-whisper/Ollama): Dein PC → läuft komplett auf deiner eigenen Hardware
+Online (Groq/OpenAI/Claude/…):  Dein PC → gewählter API-Anbieter
+Lokal (whisper.cpp/Ollama):     läuft komplett auf deiner eigenen Hardware
 ```
 
 Kein eigenes Backend. Audio und Text gehen direkt vom PC zum gewählten Anbieter.
@@ -231,4 +219,4 @@ Kein eigenes Backend. Audio und Text gehen direkt vom PC zum gewählten Anbieter
 
 ## Lizenz
 
-MIT License — abgeleitet vom Original [cmagnussen/blitztext-app](https://github.com/cmagnussen/blitztext-app).
+MIT License – abgeleitet vom Original [cmagnussen/blitztext-app](https://github.com/cmagnussen/blitztext-app).

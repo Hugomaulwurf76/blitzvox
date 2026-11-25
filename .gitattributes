@@ -1,0 +1,5 @@
+# Shell-Skripte und Linux-Paketdateien immer mit LF (auch bei Checkout unter Windows)
+*.sh text eol=lf
+src-tauri/linux/** text eol=lf
+# Windows-Startskripte mit CRLF
+*.cmd text eol=crlf

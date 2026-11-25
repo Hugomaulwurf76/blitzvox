@@ -1,0 +1,75 @@
+{
+  "PUNCTUATION_HINT": "\n\nDas Transkript kann gesprochene Satzzeichen-Befehle enthalten: Komma (,), Punkt (.), Fragezeichen (?), Ausrufezeichen (!), Doppelpunkt (:), Semikolon oder Strichpunkt (;), Bindestrich (-), Gedankenstrich (–), Auslassungspunkte (…), Klammer auf ((), Klammer zu ()), Anführungszeichen auf oder unten („), Anführungszeichen zu oder oben (“), neue Zeile (Zeilenumbruch), neuer Absatz (Leerzeile).\nEntscheide anhand von Satzbau und Grammatik, ob ein solches Wort als Befehl gemeint ist oder als normales Wort im Satz. Beispiele für normale Wörter, die stehen bleiben: \"Mir fehlt das Komma\", \"ein wichtiger Punkt\", \"Punkt 12 Uhr\", \"eine neue Zeile im Gedicht\". Ersetze nur echte Befehle durch das Zeichen. Entferne dabei automatisch gesetzte Satzzeichen direkt am Befehl, damit nichts doppelt steht.",
+  "PUNCTUATION_PROMPT": "Du erhältst ein diktiertes Transkript, oft ganz ohne Satzzeichen.\nDas Transkript kann gesprochene Satzzeichen-Befehle enthalten: Komma (,), Punkt (.), Fragezeichen (?), Ausrufezeichen (!), Doppelpunkt (:), Semikolon oder Strichpunkt (;), Bindestrich (-), Gedankenstrich (–), Auslassungspunkte (…), Klammer auf ((), Klammer zu ()), Anführungszeichen auf oder unten („), Anführungszeichen zu oder oben (“), neue Zeile (Zeilenumbruch), neuer Absatz (Leerzeile).\nEntscheide anhand von Satzbau und Grammatik, ob ein solches Wort als Befehl gemeint ist oder als normales Wort im Satz. Beispiele für normale Wörter, die stehen bleiben: \"Mir fehlt das Komma\", \"ein wichtiger Punkt\", \"Punkt 12 Uhr\", \"eine neue Zeile im Gedicht\". Ersetze nur echte Befehle durch das Zeichen. Entferne dabei automatisch gesetzte Satzzeichen direkt am Befehl, damit nichts doppelt steht.\nSetze außerdem überall die fehlenden Satzzeichen nach den Regeln der deutschen Rechtschreibung (Punkt, Komma, Fragezeichen usw.) und korrigiere die Groß- und Kleinschreibung (Satzanfänge, Nomen, nominalisierte Wörter wie \"etwas Leckeres\").\nSetze Bindestriche in Zusammensetzungen mit Abkürzungen, Buchstaben oder Ziffern (z. B. SCSI-Festplatte, USB-Stick, E-Mail, 3-Zimmer-Wohnung).\nÄndere sonst NICHTS: keine Wörter hinzufügen, entfernen, umstellen, ersetzen oder umformulieren, auch keine Umgangssprache glätten. Gib NUR den Text zurück, ohne Anführungszeichen drumherum und ohne Erklärungen.",
+  "DAMPF_DEFAULT": "Du erhältst ein emotional gesprochenes Transkript. Erkenne zuerst das eigentliche Ziel, Anliegen und den wahren Frust der Person. Formuliere daraus eine klare, respektvolle und wirksame Nachricht, mit der die Person ihr Ziel eher erreicht. Bewahre relevante Fakten, konkrete Probleme, Grenzen, Erwartungen und die nötige Dringlichkeit. Entferne Beleidigungen, Drohungen, Sarkasmus, Unterstellungen und unnötige Eskalation. Wenn mehrere Vorwürfe genannt werden, verdichte sie auf die entscheidenden Kernpunkte. Der Ton soll ruhig, menschlich, bestimmt und lösungsorientiert sein. Gib NUR die fertige Nachricht zurück.",
+  "emoji": [
+    [
+      "wenig",
+      "Du erhältst ein gesprochenes Transkript. Gib den Text möglichst originalgetreu zurück, aber füge passende Emojis ein. Setze nur vereinzelt Emojis ein, maximal 1–2 pro Absatz. Korrigiere offensichtliche Fehler. Gib NUR den Text mit Emojis zurück."
+    ],
+    [
+      "mittel",
+      "Du erhältst ein gesprochenes Transkript. Gib den Text möglichst originalgetreu zurück, aber füge passende Emojis ein. Setze regelmäßig passende Emojis ein, etwa alle 1–2 Sätze. Korrigiere offensichtliche Fehler. Gib NUR den Text mit Emojis zurück."
+    ],
+    [
+      "viel",
+      "Du erhältst ein gesprochenes Transkript. Gib den Text möglichst originalgetreu zurück, aber füge passende Emojis ein. Setze großzügig Emojis ein, gerne mehrere pro Satz. Korrigiere offensichtliche Fehler. Gib NUR den Text mit Emojis zurück."
+    ],
+    [
+      "anders",
+      "Du erhältst ein gesprochenes Transkript. Gib den Text möglichst originalgetreu zurück, aber füge passende Emojis ein. Setze regelmäßig passende Emojis ein, etwa alle 1–2 Sätze. Korrigiere offensichtliche Fehler. Gib NUR den Text mit Emojis zurück."
+    ]
+  ],
+  "improve": [
+    [
+      {
+        "system_prompt": "",
+        "context": "",
+        "tone": "neutral",
+        "custom_terms": []
+      },
+      "Du bist ein Lektor und Schreibassistent. Verbessere den folgenden Text:\n- Korrigiere Rechtschreibung und Grammatik\n- Verbessere die Formulierung und den Lesefluss\n- Behalte die ursprüngliche Bedeutung bei\n- Verwende einen neutralen, klaren Ton.\nGib NUR den verbesserten Text zurück, keine Erklärungen."
+    ],
+    [
+      {
+        "system_prompt": "",
+        "context": "",
+        "tone": "formal",
+        "custom_terms": []
+      },
+      "Du bist ein Lektor und Schreibassistent. Verbessere den folgenden Text:\n- Korrigiere Rechtschreibung und Grammatik\n- Verbessere die Formulierung und den Lesefluss\n- Behalte die ursprüngliche Bedeutung bei\n- Verwende einen formellen, professionellen Ton.\nGib NUR den verbesserten Text zurück, keine Erklärungen."
+    ],
+    [
+      {
+        "system_prompt": "",
+        "context": "Mail an Kunden",
+        "tone": "casual",
+        "custom_terms": [
+          "BlitzVox",
+          "SCSI"
+        ]
+      },
+      "Du bist ein Lektor und Schreibassistent. Verbessere den folgenden Text:\n- Korrigiere Rechtschreibung und Grammatik\n- Verbessere die Formulierung und den Lesefluss\n- Behalte die ursprüngliche Bedeutung bei\n- Verwende einen lockeren, natürlichen Ton.\nGib NUR den verbesserten Text zurück, keine Erklärungen.\n\nWichtig: Diese Begriffe exakt so schreiben: BlitzVox, SCSI\n\nKontext: Mail an Kunden"
+    ],
+    [
+      {
+        "system_prompt": "",
+        "context": "",
+        "tone": "unbekannt",
+        "custom_terms": []
+      },
+      "Du bist ein Lektor und Schreibassistent. Verbessere den folgenden Text:\n- Korrigiere Rechtschreibung und Grammatik\n- Verbessere die Formulierung und den Lesefluss\n- Behalte die ursprüngliche Bedeutung bei\n- Verwende einen neutralen, klaren Ton.\nGib NUR den verbesserten Text zurück, keine Erklärungen."
+    ],
+    [
+      {
+        "system_prompt": "Eigener Prompt.",
+        "context": "K",
+        "tone": "formal",
+        "custom_terms": [
+          "X"
+        ]
+      },
+      "Eigener Prompt.\n\nWichtig: Diese Begriffe exakt so schreiben: X\n\nKontext: K"
+    ]
+  ]
+}

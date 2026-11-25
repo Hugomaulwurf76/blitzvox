@@ -1,21 +1,15 @@
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-*.egg-info/
-build/
-dist/
-.DS_Store
-Thumbs.db
-start.bat
-start.sh
-(3
-blitztext-cross.zip
+# Build-Ausgaben (Windows baut über die Verknüpfung D:\bv nach target)
+/target/
+/src-tauri/target/
+/src-tauri/gen/schemas
 
-# Build-Ordner des Entwicklers (nicht im Repo)
-BlitzVoxEXE/
-BlitzVoxDEB/
+# Fertige Pakete und Übergabe-Archive
+*.deb
+*.tar.gz
+*.exe
 
-# Erweiterung „Lokale Spracherkennung“ (nur zum Testen aus dem Quellcode)
-lokal/
+# Alte Python-Version (liegt im Git-Verlauf unter dem Tag v1.0.8)
+/BlitzVox alt/
+
+# Interne Arbeitsnotizen
+/CLAUDE.md

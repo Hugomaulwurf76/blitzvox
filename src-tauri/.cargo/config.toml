@@ -1,0 +1,4 @@
+# VC++-Laufzeit unter Windows fest in die EXE einbinden (kein MSVCP140.dll/VCRUNTIME140.dll noetig).
+# Gilt nur fuer Windows-MSVC-Ziele, nicht fuer den Linux-Build.
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]

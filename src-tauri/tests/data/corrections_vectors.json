@@ -1,0 +1,641 @@
+{
+  "spoken_punctuation": [
+    [
+      "Hallo Komma wie geht es dir Fragezeichen",
+      "Hallo, wie geht es dir?"
+    ],
+    [
+      "Hallo, Komma, wie geht es dir? Fragezeichen",
+      "Hallo, wie geht es dir?"
+    ],
+    [
+      "Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian",
+      "Ich komme morgen.\n\nLiebe Grüße,\nChristian"
+    ],
+    [
+      "der Punkt ist wichtig Punkt",
+      "Der Punkt ist wichtig."
+    ],
+    [
+      "Setz hier ein Komma hin Ausrufezeichen",
+      "Setz hier ein Komma hin!"
+    ],
+    [
+      "Klammer auf siehe oben Klammer zu Punkt",
+      "(siehe oben)."
+    ],
+    [
+      "Er sagte Anführungszeichen unten Hallo Anführungszeichen oben Punkt",
+      "Er sagte „Hallo“."
+    ],
+    [
+      "Er sagte Anführungszeichen auf Hallo Anführungszeichen zu.",
+      "Er sagte „Hallo“"
+    ],
+    [
+      "Das ist toll Gedankenstrich wirklich toll Punkt",
+      "Das ist toll – wirklich toll."
+    ],
+    [
+      "E Bindestrich Mail schreiben Punkt",
+      "E-Mail schreiben."
+    ],
+    [
+      "Und dann Auslassungspunkte nichts mehr",
+      "Und dann… nichts mehr"
+    ],
+    [
+      "Liste Doppelpunkt Äpfel Komma Birnen Semikolon Ende Punkt",
+      "Liste: Äpfel, Birnen; Ende."
+    ],
+    [
+      "ein Strichpunkt reicht Strichpunkt oder?",
+      "Ein Strichpunkt reicht; oder?"
+    ],
+    [
+      "Kein Befehl in diesem Satz.",
+      "Kein Befehl in diesem Satz."
+    ],
+    [
+      "KOMMA in Großbuchstaben NEUE   ZEILE geht auch",
+      ", in Großbuchstaben\nGeht auch"
+    ],
+    [
+      "  Punkt am Anfang",
+      ". Am Anfang"
+    ],
+    [
+      "über Punkt ändern Komma öfter Fragezeichen ärger",
+      "Über. Ändern, öfter? Ärger"
+    ],
+    [
+      "Zeile neue Zeile\tneue Zeile Ende",
+      "Zeile\n\nEnde"
+    ],
+    [
+      "Kommandant Punktlandung Fragezeichenartig",
+      "Kommandant Punktlandung Fragezeichenartig"
+    ],
+    [
+      "Das kostet 3 Punkt 5 Euro",
+      "Das kostet 3. 5 Euro"
+    ],
+    [
+      "Hallo zusammen. Komma. und weiter",
+      "Hallo zusammen, und weiter"
+    ],
+    [
+      "passt. ? oder nicht",
+      "passt. ? oder nicht"
+    ],
+    [
+      "morgen , wenn es passt..",
+      "morgen , wenn es passt.."
+    ],
+    [
+      "vergessen.. aber ... bleibt?!",
+      "vergessen.. aber ... bleibt?!"
+    ],
+    [
+      "Wirklich ; ? ja",
+      "Wirklich ; ? ja"
+    ],
+    [
+      "Text mit Klammer ( innen ) und “ Zitat ”",
+      "Text mit Klammer ( innen ) und “ Zitat ”"
+    ],
+    [
+      "",
+      ""
+    ],
+    [
+      "   ",
+      "   "
+    ]
+  ],
+  "tidy_punctuation": [
+    [
+      "Hallo Komma wie geht es dir Fragezeichen",
+      "Hallo Komma wie geht es dir Fragezeichen"
+    ],
+    [
+      "Hallo, Komma, wie geht es dir? Fragezeichen",
+      "Hallo, Komma, wie geht es dir? Fragezeichen"
+    ],
+    [
+      "Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian",
+      "Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian"
+    ],
+    [
+      "der Punkt ist wichtig Punkt",
+      "der Punkt ist wichtig Punkt"
+    ],
+    [
+      "Setz hier ein Komma hin Ausrufezeichen",
+      "Setz hier ein Komma hin Ausrufezeichen"
+    ],
+    [
+      "Klammer auf siehe oben Klammer zu Punkt",
+      "Klammer auf siehe oben Klammer zu Punkt"
+    ],
+    [
+      "Er sagte Anführungszeichen unten Hallo Anführungszeichen oben Punkt",
+      "Er sagte Anführungszeichen unten Hallo Anführungszeichen oben Punkt"
+    ],
+    [
+      "Er sagte Anführungszeichen auf Hallo Anführungszeichen zu.",
+      "Er sagte Anführungszeichen auf Hallo Anführungszeichen zu."
+    ],
+    [
+      "Das ist toll Gedankenstrich wirklich toll Punkt",
+      "Das ist toll Gedankenstrich wirklich toll Punkt"
+    ],
+    [
+      "E Bindestrich Mail schreiben Punkt",
+      "E Bindestrich Mail schreiben Punkt"
+    ],
+    [
+      "Und dann Auslassungspunkte nichts mehr",
+      "Und dann Auslassungspunkte nichts mehr"
+    ],
+    [
+      "Liste Doppelpunkt Äpfel Komma Birnen Semikolon Ende Punkt",
+      "Liste Doppelpunkt Äpfel Komma Birnen Semikolon Ende Punkt"
+    ],
+    [
+      "ein Strichpunkt reicht Strichpunkt oder?",
+      "ein Strichpunkt reicht Strichpunkt oder?"
+    ],
+    [
+      "Kein Befehl in diesem Satz.",
+      "Kein Befehl in diesem Satz."
+    ],
+    [
+      "KOMMA in Großbuchstaben NEUE   ZEILE geht auch",
+      "KOMMA in Großbuchstaben NEUE   ZEILE geht auch"
+    ],
+    [
+      "  Punkt am Anfang",
+      "  Punkt am Anfang"
+    ],
+    [
+      "über Punkt ändern Komma öfter Fragezeichen ärger",
+      "über Punkt ändern Komma öfter Fragezeichen ärger"
+    ],
+    [
+      "Zeile neue Zeile\tneue Zeile Ende",
+      "Zeile neue Zeile\tneue Zeile Ende"
+    ],
+    [
+      "Kommandant Punktlandung Fragezeichenartig",
+      "Kommandant Punktlandung Fragezeichenartig"
+    ],
+    [
+      "Das kostet 3 Punkt 5 Euro",
+      "Das kostet 3 Punkt 5 Euro"
+    ],
+    [
+      "Hallo zusammen. Komma. und weiter",
+      "Hallo zusammen. Komma. und weiter"
+    ],
+    [
+      "passt. ? oder nicht",
+      "passt? oder nicht"
+    ],
+    [
+      "morgen , wenn es passt..",
+      "morgen, wenn es passt."
+    ],
+    [
+      "vergessen.. aber ... bleibt?!",
+      "vergessen. aber... bleibt?!"
+    ],
+    [
+      "Wirklich ; ? ja",
+      "Wirklich? ja"
+    ],
+    [
+      "Text mit Klammer ( innen ) und “ Zitat ”",
+      "Text mit Klammer ( innen) und“ Zitat ”"
+    ],
+    [
+      "",
+      ""
+    ],
+    [
+      "   ",
+      "   "
+    ]
+  ],
+  "has_spoken_punctuation": [
+    [
+      "Hallo Komma wie geht es dir Fragezeichen",
+      true
+    ],
+    [
+      "Hallo, Komma, wie geht es dir? Fragezeichen",
+      true
+    ],
+    [
+      "Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian",
+      true
+    ],
+    [
+      "der Punkt ist wichtig Punkt",
+      true
+    ],
+    [
+      "Setz hier ein Komma hin Ausrufezeichen",
+      true
+    ],
+    [
+      "Klammer auf siehe oben Klammer zu Punkt",
+      true
+    ],
+    [
+      "Er sagte Anführungszeichen unten Hallo Anführungszeichen oben Punkt",
+      true
+    ],
+    [
+      "Er sagte Anführungszeichen auf Hallo Anführungszeichen zu.",
+      true
+    ],
+    [
+      "Das ist toll Gedankenstrich wirklich toll Punkt",
+      true
+    ],
+    [
+      "E Bindestrich Mail schreiben Punkt",
+      true
+    ],
+    [
+      "Und dann Auslassungspunkte nichts mehr",
+      true
+    ],
+    [
+      "Liste Doppelpunkt Äpfel Komma Birnen Semikolon Ende Punkt",
+      true
+    ],
+    [
+      "ein Strichpunkt reicht Strichpunkt oder?",
+      true
+    ],
+    [
+      "Kein Befehl in diesem Satz.",
+      false
+    ],
+    [
+      "KOMMA in Großbuchstaben NEUE   ZEILE geht auch",
+      true
+    ],
+    [
+      "  Punkt am Anfang",
+      true
+    ],
+    [
+      "über Punkt ändern Komma öfter Fragezeichen ärger",
+      true
+    ],
+    [
+      "Zeile neue Zeile\tneue Zeile Ende",
+      true
+    ],
+    [
+      "Kommandant Punktlandung Fragezeichenartig",
+      false
+    ],
+    [
+      "Das kostet 3 Punkt 5 Euro",
+      true
+    ],
+    [
+      "Hallo zusammen. Komma. und weiter",
+      true
+    ],
+    [
+      "passt. ? oder nicht",
+      false
+    ],
+    [
+      "morgen , wenn es passt..",
+      false
+    ],
+    [
+      "vergessen.. aber ... bleibt?!",
+      false
+    ],
+    [
+      "Wirklich ; ? ja",
+      false
+    ],
+    [
+      "Text mit Klammer ( innen ) und “ Zitat ”",
+      false
+    ],
+    [
+      "",
+      false
+    ],
+    [
+      "   ",
+      false
+    ]
+  ],
+  "replacements": {
+    "Blitz Text": "BlitzVox",
+    "Blitz": "Blitze",
+    "scuzzy": "SCSI",
+    "Groq": "Groq",
+    "o'neil": "O'Neil",
+    "Über ich": "Überich"
+  },
+  "apply_replacements": [
+    [
+      "Der Blitz Text ist schnell, Blitz!",
+      "Der BlitzVox ist schnell, Blitze!"
+    ],
+    [
+      "Scuzzy-Festplatte und SCUZZY Controller",
+      "SCSI-Festplatte und SCSI Controller"
+    ],
+    [
+      "Blitztext bleibt, aber Blitz wird ersetzt",
+      "Blitztext bleibt, aber Blitze wird ersetzt"
+    ],
+    [
+      "o'neil und O'NEIL sowie über ich",
+      "O'Neil und O'Neil sowie Überich"
+    ],
+    [
+      "BlitzBlitz Blitz_Text Blitz",
+      "BlitzBlitz Blitz_Text Blitze"
+    ]
+  ],
+  "suggest_from_edit": [
+    [
+      "Die Scuzzy-Festplatte ist kaputt",
+      "Die SCSI-Festplatte ist kaputt",
+      [
+        [
+          "Scuzzy",
+          "SCSI"
+        ]
+      ]
+    ],
+    [
+      "Hallo Welt",
+      "hallo welt!",
+      []
+    ],
+    [
+      "Ich nutze Blitz Text täglich",
+      "Ich nutze BlitzVox täglich",
+      [
+        [
+          "Blitz Text",
+          "BlitzVox"
+        ]
+      ]
+    ],
+    [
+      "eins zwei drei vier fünf sechs",
+      "eins A B C D sechs",
+      []
+    ],
+    [
+      "eins zwei drei",
+      "eins zwei drei vier",
+      []
+    ],
+    [
+      "das ist der beste Test",
+      "das ist ein sehr guter Test",
+      [
+        [
+          "der beste",
+          "ein sehr guter"
+        ]
+      ]
+    ],
+    [
+      "O'Neil spielt Groq",
+      "O’Neil spielt Grok",
+      [
+        [
+          "O'Neil",
+          "O’Neil"
+        ],
+        [
+          "Groq",
+          "Grok"
+        ]
+      ]
+    ],
+    [
+      "a b a b a b",
+      "a c a c a b",
+      []
+    ],
+    [
+      "",
+      "neu",
+      []
+    ],
+    [
+      "Mehrfach Fehler Fehler",
+      "Mehrfach Fähler Fähler",
+      [
+        [
+          "Fehler Fehler",
+          "Fähler Fähler"
+        ]
+      ]
+    ]
+  ],
+  "llm_output_is_safe": [
+    [
+      "Hallo Komma wie geht es dir Fragezeichen",
+      "Hallo, wie geht es dir?",
+      true
+    ],
+    [
+      "Hallo Komma wie geht es dir",
+      "Hallo, wie geht es Ihnen?",
+      false
+    ],
+    [
+      "Punkt neue Zeile Ende",
+      "Ende",
+      true
+    ],
+    [
+      "Das ist gut",
+      "Das ist gut.",
+      true
+    ],
+    [
+      "Das ist gut",
+      "",
+      false
+    ],
+    [
+      "Das ist gut",
+      "Das gut ist",
+      false
+    ],
+    [
+      "Er sagte Anführungszeichen unten Hallo Anführungszeichen oben",
+      "Er sagte „Hallo“",
+      true
+    ],
+    [
+      "neue Absatz test",
+      "test",
+      false
+    ],
+    [
+      "Komma Komma Punkt",
+      "   ",
+      false
+    ],
+    [
+      "Text",
+      "Text und mehr",
+      false
+    ]
+  ],
+  "is_prompt_echo": [
+    [
+      "Hallo Komma wie geht es dir",
+      "Hallo Komma wie geht es dir Fragezeichen neue Zeile Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian",
+      true
+    ],
+    [
+      "hallo komma",
+      "Hallo Komma wie geht es dir Fragezeichen neue Zeile Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian",
+      false
+    ],
+    [
+      "Liebe Grüße Komma neue Zeile Christian",
+      "Hallo Komma wie geht es dir Fragezeichen neue Zeile Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian",
+      true
+    ],
+    [
+      "Ganz anderer Text hier",
+      "Hallo Komma wie geht es dir Fragezeichen neue Zeile Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian",
+      false
+    ],
+    [
+      "",
+      "Hallo Komma wie geht es dir Fragezeichen neue Zeile Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian",
+      false
+    ],
+    [
+      "eins zwei drei",
+      "null eins zwei drei vier",
+      true
+    ]
+  ],
+  "build_stt_prompt": [
+    [
+      true,
+      [],
+      "Hallo Komma wie geht es dir Fragezeichen neue Zeile Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian"
+    ],
+    [
+      false,
+      [],
+      ""
+    ],
+    [
+      true,
+      [
+        "SCSI",
+        "BlitzVox",
+        "Groq"
+      ],
+      "Hallo Komma wie geht es dir Fragezeichen neue Zeile Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian Groq BlitzVox SCSI"
+    ],
+    [
+      false,
+      [
+        "SCSI",
+        "BlitzVox",
+        "Groq"
+      ],
+      "Groq BlitzVox SCSI"
+    ],
+    [
+      true,
+      [
+        "Wort00-mit-etwas-Länge",
+        "Wort01-mit-etwas-Länge",
+        "Wort02-mit-etwas-Länge",
+        "Wort03-mit-etwas-Länge",
+        "Wort04-mit-etwas-Länge",
+        "Wort05-mit-etwas-Länge",
+        "Wort06-mit-etwas-Länge",
+        "Wort07-mit-etwas-Länge",
+        "Wort08-mit-etwas-Länge",
+        "Wort09-mit-etwas-Länge",
+        "Wort10-mit-etwas-Länge",
+        "Wort11-mit-etwas-Länge",
+        "Wort12-mit-etwas-Länge",
+        "Wort13-mit-etwas-Länge",
+        "Wort14-mit-etwas-Länge",
+        "Wort15-mit-etwas-Länge",
+        "Wort16-mit-etwas-Länge",
+        "Wort17-mit-etwas-Länge",
+        "Wort18-mit-etwas-Länge",
+        "Wort19-mit-etwas-Länge",
+        "Wort20-mit-etwas-Länge",
+        "Wort21-mit-etwas-Länge",
+        "Wort22-mit-etwas-Länge",
+        "Wort23-mit-etwas-Länge",
+        "Wort24-mit-etwas-Länge",
+        "Wort25-mit-etwas-Länge",
+        "Wort26-mit-etwas-Länge",
+        "Wort27-mit-etwas-Länge",
+        "Wort28-mit-etwas-Länge",
+        "Wort29-mit-etwas-Länge"
+      ],
+      "Hallo Komma wie geht es dir Fragezeichen neue Zeile Ich komme morgen Punkt neuer Absatz Liebe Grüße Komma neue Zeile Christian Wort29-mit-etwas-Länge Wort28-mit-etwas-Länge Wort27-mit-etwas-Länge Wort26-mit-etwas-Länge Wort25-mit-etwas-Länge Wort24-mit-etwas-Länge Wort23-mit-etwas-Länge Wort22-mit-etwas-Länge Wort21-mit-etwas-Länge Wort20-mit-etwas-Länge Wort19-mit-etwas-Länge Wort18-mit-etwas-Länge Wort17-mit-etwas-Länge Wort16-mit-etwas-Länge"
+    ],
+    [
+      false,
+      [
+        "Wort00-mit-etwas-Länge",
+        "Wort01-mit-etwas-Länge",
+        "Wort02-mit-etwas-Länge",
+        "Wort03-mit-etwas-Länge",
+        "Wort04-mit-etwas-Länge",
+        "Wort05-mit-etwas-Länge",
+        "Wort06-mit-etwas-Länge",
+        "Wort07-mit-etwas-Länge",
+        "Wort08-mit-etwas-Länge",
+        "Wort09-mit-etwas-Länge",
+        "Wort10-mit-etwas-Länge",
+        "Wort11-mit-etwas-Länge",
+        "Wort12-mit-etwas-Länge",
+        "Wort13-mit-etwas-Länge",
+        "Wort14-mit-etwas-Länge",
+        "Wort15-mit-etwas-Länge",
+        "Wort16-mit-etwas-Länge",
+        "Wort17-mit-etwas-Länge",
+        "Wort18-mit-etwas-Länge",
+        "Wort19-mit-etwas-Länge",
+        "Wort20-mit-etwas-Länge",
+        "Wort21-mit-etwas-Länge",
+        "Wort22-mit-etwas-Länge",
+        "Wort23-mit-etwas-Länge",
+        "Wort24-mit-etwas-Länge",
+        "Wort25-mit-etwas-Länge",
+        "Wort26-mit-etwas-Länge",
+        "Wort27-mit-etwas-Länge",
+        "Wort28-mit-etwas-Länge",
+        "Wort29-mit-etwas-Länge"
+      ],
+      "Wort29-mit-etwas-Länge Wort28-mit-etwas-Länge Wort27-mit-etwas-Länge Wort26-mit-etwas-Länge Wort25-mit-etwas-Länge Wort24-mit-etwas-Länge Wort23-mit-etwas-Länge Wort22-mit-etwas-Länge Wort21-mit-etwas-Länge Wort20-mit-etwas-Länge Wort19-mit-etwas-Länge Wort18-mit-etwas-Länge Wort17-mit-etwas-Länge Wort16-mit-etwas-Länge"
+    ]
+  ]
+}
