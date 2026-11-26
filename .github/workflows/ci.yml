@@ -73,9 +73,11 @@ jobs:
           - name: Linux
             os: ubuntu-24.04
             bundles: deb
+            artifact: src-tauri/target/release/bundle/deb/*.deb
           - name: Windows
             os: windows-2025
             bundles: nsis
+            artifact: C:\t\release\bundle\nsis\*.exe
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -123,8 +125,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: blitzvox-${{ matrix.name }}
-          path: |
-            src-tauri/target/release/bundle/deb/*.deb
-            C:\t\release\bundle\nsis\*.exe
+          path: ${{ matrix.artifact }}
           if-no-files-found: error
           retention-days: 14
