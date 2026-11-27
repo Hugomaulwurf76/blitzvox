@@ -211,12 +211,17 @@ impl BackupContent {
     /// Kurzbeschreibung für die Rückfrage vor dem Einspielen.
     pub fn summary(&self) -> String {
         let (y, m, d) = utc_date(self.created);
+        let corr = match self.correction_count() {
+            1 => "1 gelernte Korrektur".to_string(),
+            n => format!("{n} gelernte Korrekturen"),
+        };
+        let keys = match self.known_key_count() {
+            1 => "1 API-Key".to_string(),
+            n => format!("{n} API-Keys"),
+        };
         format!(
-            "Sicherung vom {d:02}.{m:02}.{y} (BlitzVox {})\n\
-             – Einstellungen\n– {} gelernte Korrekturen\n– {} API-Keys",
-            self.app_version,
-            self.correction_count(),
-            self.known_key_count()
+            "Sicherung vom {d:02}.{m:02}.{y} (BlitzVox {})\n– Einstellungen\n– {corr}\n– {keys}",
+            self.app_version
         )
     }
 }
@@ -466,6 +471,10 @@ mod tests {
         assert_eq!(c.known_key_count(), 1);
         assert_eq!(c.correction_count(), 1);
         c.parsed_settings().unwrap();
+        assert_eq!(
+            c.summary(),
+            "Sicherung vom 27.11.2026 (BlitzVox 2.0.0)\n– Einstellungen\n– 1 gelernte Korrektur\n– 1 API-Key"
+        );
     }
 
     #[test]
