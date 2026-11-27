@@ -6,25 +6,13 @@ use std::collections::HashMap;
 
 use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
-use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use zeroize::Zeroizing;
 
 use crate::app::{AppState, VERSION, lock, setup_hotkeys};
-use crate::secrets::{
-    KEY_ANTHROPIC, KEY_ASSEMBLYAI, KEY_CUSTOM_LLM, KEY_CUSTOM_STT, KEY_GROQ, KEY_OPENAI,
-    KEY_OPENROUTER, delete_api_key, get_api_key, set_api_key,
-};
+use crate::secrets::{ALL_KEYS, delete_api_key, get_api_key, set_api_key};
 use crate::settings::{AppSettings, llm_provider, masked, save_settings, stt_provider};
-use crate::{autostart, corrections, llm, paste, recorder, stt};
-
-const ALL_KEYS: [&str; 7] = [
-    KEY_OPENAI,
-    KEY_GROQ,
-    KEY_ANTHROPIC,
-    KEY_ASSEMBLYAI,
-    KEY_CUSTOM_STT,
-    KEY_CUSTOM_LLM,
-    KEY_OPENROUTER,
-];
+use crate::{autostart, backup, corrections, llm, paste, recorder, stt};
 
 /// Sprachen der Auswahl (wie LANGUAGES in setup_wizard.py).
 const LANGUAGES: [(&str, &str); 10] = [
@@ -195,6 +183,94 @@ pub async fn settings_save(
     *lock(&app.state::<AppState>().settings) = settings;
     setup_hotkeys(&app);
     Ok(())
+}
+
+// ── Sicherung (Tab „Erweitert“) ──────────────────────────────────────────────
+
+/// „Sicherung erstellen …“: Speicherort wählen, gespeicherten Stand
+/// verschlüsselt schreiben. `None`, wenn der Dialog abgebrochen wurde.
+#[tauri::command]
+pub async fn backup_create(password: String, app: AppHandle) -> Result<Option<String>, String> {
+    let password = Zeroizing::new(password);
+    if password.chars().count() < backup::MIN_PASSWORD_CHARS {
+        return Err(backup::BackupError::PasswordTooShort.into());
+    }
+    // Dialog und Argon2 (256 MiB) blockieren: nicht im Haupt-Thread
+    tauri::async_runtime::spawn_blocking(move || -> Result<Option<String>, String> {
+        let mut dlg = app
+            .dialog()
+            .file()
+            .set_title("Sicherung speichern")
+            .add_filter("BlitzVox-Sicherung", &[backup::EXTENSION])
+            .set_file_name(backup::default_file_name());
+        if let Some(w) = app.get_webview_window("settings") {
+            dlg = dlg.set_parent(&w);
+        }
+        let Some(file) = dlg.blocking_save_file() else { return Ok(None) };
+        let path = backup::with_extension(file.into_path().map_err(|e| e.to_string())?);
+        backup::create(&path, &password)?;
+        Ok(Some(path.display().to_string()))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// „Sicherung einspielen …“: Datei wählen, entschlüsseln, nachfragen und
+/// dann Einstellungen, Korrekturen und Keys schreiben. `false`, wenn
+/// abgebrochen wurde. Bei falschem Passwort wird nichts geändert.
+#[tauri::command]
+pub async fn backup_restore(password: String, app: AppHandle) -> Result<bool, String> {
+    let password = Zeroizing::new(password);
+    if password.is_empty() {
+        return Err("Bitte das Passwort der Sicherung eingeben.".into());
+    }
+    let handle = app.clone();
+    let restored = tauri::async_runtime::spawn_blocking(move || -> Result<Option<AppSettings>, String> {
+        let win = handle.get_webview_window("settings");
+        let mut dlg = handle
+            .dialog()
+            .file()
+            .set_title("Sicherung einspielen")
+            .add_filter("BlitzVox-Sicherung", &[backup::EXTENSION]);
+        if let Some(w) = &win {
+            dlg = dlg.set_parent(w);
+        }
+        let Some(file) = dlg.blocking_pick_file() else { return Ok(None) };
+        let path = file.into_path().map_err(|e| e.to_string())?;
+        let content = backup::read_from(&path, &password)?;
+        let mut ask = handle
+            .dialog()
+            .message(format!(
+                "{}\n\nDie aktuellen Einstellungen und Korrekturen werden ersetzt. \
+Keys aus der Sicherung überschreiben die gespeicherten, alle anderen Keys \
+bleiben erhalten. Nicht gespeicherte Änderungen in diesem Fenster gehen \
+verloren.\n\nJetzt einspielen?",
+                content.summary()
+            ))
+            .title("BlitzVox – Sicherung einspielen")
+            .kind(MessageDialogKind::Warning)
+            .buttons(MessageDialogButtons::OkCancelCustom("Einspielen".into(), "Abbrechen".into()));
+        if let Some(w) = &win {
+            ask = ask.parent(w);
+        }
+        if !ask.blocking_show() {
+            return Ok(None);
+        }
+        backup::apply(&content).map(Some).map_err(String::from)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    let Some(settings) = restored else { return Ok(false) };
+    if let Err(e) = autostart::set_enabled(settings.launch_at_login) {
+        app.dialog()
+            .message(format!("Der Autostart-Eintrag konnte nicht geändert werden:\n{e}"))
+            .title("BlitzVox")
+            .kind(MessageDialogKind::Warning)
+            .show(|_| {});
+    }
+    *lock(&app.state::<AppState>().settings) = settings;
+    setup_hotkeys(&app);
+    Ok(true)
 }
 
 // ── Gelernte Korrekturen (Tab „Korrekturen“, sofort gespeichert) ─────────────

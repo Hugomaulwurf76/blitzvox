@@ -66,11 +66,18 @@ pub fn corrections_path() -> io::Result<PathBuf> {
 /// Liest das Wörterbuch. Eine defekte Datei ergibt ein leeres Wörterbuch,
 /// das Programm läuft weiter (wie `load()` in corrections.py).
 pub fn load_from(path: &Path) -> CorrectionData {
+    let Ok(bytes) = fs::read(path) else { return CorrectionData::default() };
+    match serde_json::from_slice::<Value>(&bytes) {
+        Ok(v) => from_value(v),
+        Err(_) => CorrectionData::default(),
+    }
+}
+
+/// Wörterbuch aus einem JSON-Wert (Datei oder Sicherung). Fehlt etwas oder
+/// hat es den falschen Typ, bleibt der Teil leer.
+pub fn from_value(value: Value) -> CorrectionData {
     let mut data = CorrectionData::default();
-    let Ok(bytes) = fs::read(path) else { return data };
-    let Ok(Value::Object(mut saved)) = serde_json::from_slice::<Value>(&bytes) else {
-        return data;
-    };
+    let Value::Object(mut saved) = value else { return data };
     if let Some(Value::Object(reps)) = saved.remove("replacements") {
         data.replacements.extend(reps);
     }

@@ -1,5 +1,6 @@
 mod app;
 mod autostart;
+mod backup;
 mod corrections;
 mod hotkeys;
 mod http;
