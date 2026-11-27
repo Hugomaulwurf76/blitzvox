@@ -332,7 +332,7 @@ fn set_load_error(v: Option<String>) {
 
 /// Liest gespeicherte Werte, füllt fehlende mit Standardwerten auf und
 /// ignoriert unbekannte Felder (fallen beim nächsten Speichern weg).
-fn parse_merged(text: &str) -> Result<AppSettings, String> {
+pub(crate) fn parse_merged(text: &str) -> Result<AppSettings, String> {
     let saved: Value = serde_json::from_str(text).map_err(|e| format!("JSONDecodeError: {e}"))?;
     let Value::Object(saved) = saved else {
         return Err("Fehler: Die Datei enthält kein JSON-Objekt.".into());

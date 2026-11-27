@@ -32,6 +32,17 @@ pub const KEY_CUSTOM_STT: &str = "custom_stt_api_key";
 pub const KEY_CUSTOM_LLM: &str = "custom_llm_api_key";
 pub const KEY_OPENROUTER: &str = "openrouter_api_key";
 
+/// Alle Keys, die BlitzVox kennt (Einstellungen, Sicherung).
+pub const ALL_KEYS: [&str; 7] = [
+    KEY_OPENAI,
+    KEY_GROQ,
+    KEY_ANTHROPIC,
+    KEY_ASSEMBLYAI,
+    KEY_CUSTOM_STT,
+    KEY_CUSTOM_LLM,
+    KEY_OPENROUTER,
+];
+
 /// Liest einen Key. Wie `get_api_key()`: bei Fehlern oder leerem Wert `None`.
 pub fn get_api_key(name: &str) -> Option<String> {
     match backend::get_password(SERVICE_NAME, name) {

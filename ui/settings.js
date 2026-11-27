@@ -1,5 +1,5 @@
 // Einstellungsfenster – Nachbau von ui/settings_window.py (Version 1.0.8).
-// Tabs: API-Zugänge | Workflows | Hotkeys | Korrekturen | Erweitert
+// Tabs: API-Zugänge | Workflows | Hotkeys | Korrekturen | Erweitert (mit Sicherung)
 "use strict";
 
 const { invoke } = window.__TAURI__.core;
@@ -373,6 +373,65 @@ async function buildAdvanced() {
 }
 
 el("wizard").addEventListener("click", () => invoke("request_setup_wizard"));
+
+// ── Sicherung ───────────────────────────────────────────────────────────────
+
+const MIN_BACKUP_PW = 12;
+
+/// Knöpfe sperren, solange gearbeitet wird (Argon2 braucht einen Moment).
+function backupBusy(busy) {
+  for (const id of ["bk-create", "bk-restore", "save"]) el(id).disabled = busy;
+}
+
+el("bk-create").addEventListener("click", async () => {
+  const status = el("bk-create-status");
+  const pw = el("bk-pw1").value;
+  if ([...pw].length < MIN_BACKUP_PW) {
+    status.textContent = `Das Passwort muss mindestens ${MIN_BACKUP_PW} Zeichen lang sein.`;
+    return;
+  }
+  if (pw !== el("bk-pw2").value) {
+    status.textContent = "Die beiden Passwörter stimmen nicht überein.";
+    return;
+  }
+  backupBusy(true);
+  status.textContent = "Sicherung wird erstellt …";
+  try {
+    const path = await invoke("backup_create", { password: pw });
+    if (path) {
+      status.textContent = "Gespeichert: " + path;
+      el("bk-pw1").value = "";
+      el("bk-pw2").value = "";
+    } else status.textContent = "Abgebrochen.";
+  } catch (e) {
+    status.textContent = String(e);
+  } finally {
+    backupBusy(false);
+  }
+});
+
+el("bk-restore").addEventListener("click", async () => {
+  const status = el("bk-restore-status");
+  const pw = el("bk-pw-restore").value;
+  if (!pw) {
+    status.textContent = "Bitte das Passwort der Sicherung eingeben.";
+    return;
+  }
+  backupBusy(true);
+  status.textContent = "Sicherung wird geprüft …";
+  try {
+    if (await invoke("backup_restore", { password: pw })) {
+      el("bk-pw-restore").value = "";
+      location.reload(); // Fenster mit den eingespielten Werten neu aufbauen
+      return;
+    }
+    status.textContent = "Abgebrochen, nichts geändert.";
+  } catch (e) {
+    status.textContent = String(e);
+  } finally {
+    backupBusy(false);
+  }
+});
 
 // ── Speichern ───────────────────────────────────────────────────────────────
 

@@ -182,6 +182,25 @@ Bei „BlitzVox“ (reine Transkription) wird dafür bei jedem Diktat das Sprach
       <button class="left" id="wizard">Einrichtungsassistent starten</button>
     </section>
     <section class="card">
+      <h3>💾  Sicherung erstellen</h3>
+      <div class="hint">Sichert Einstellungen, gelernte Korrekturen und alle API-Keys in einer mit Passwort verschlüsselten Datei. Den Speicherort wählst du selbst, z. B. einen USB-Stick oder ein Netzlaufwerk. Gesichert wird der gespeicherte Stand. Hast du gerade etwas geändert, zuerst „Speichern“ drücken und das Fenster neu öffnen. Das Passwort braucht mindestens 12 Zeichen. Wer es vergisst, kommt an die Sicherung nicht mehr heran.</div>
+      <div class="form">
+        <span>Passwort:</span><input type="password" id="bk-pw1" autocomplete="new-password">
+        <span>Wiederholen:</span><input type="password" id="bk-pw2" autocomplete="new-password">
+      </div>
+      <button class="primary left" id="bk-create">Sicherung erstellen …</button>
+      <div class="hint" id="bk-create-status"></div>
+    </section>
+    <section class="card">
+      <h3>💾  Sicherung einspielen</h3>
+      <div class="hint">Ersetzt Einstellungen und Korrekturen. Keys aus der Sicherung überschreiben die gespeicherten, alle anderen Keys bleiben erhalten. Vorher wird nachgefragt; bei falschem Passwort wird nichts geändert.</div>
+      <div class="form">
+        <span>Passwort:</span><input type="password" id="bk-pw-restore" autocomplete="off">
+      </div>
+      <button class="left" id="bk-restore">Sicherung einspielen …</button>
+      <div class="hint" id="bk-restore-status"></div>
+    </section>
+    <section class="card">
       <h3>ℹ️  Über BlitzVox</h3>
       <div class="form">
         <span>Aktuelle Version:</span><span class="strong" id="version"></span>

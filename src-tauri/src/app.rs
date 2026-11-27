@@ -636,6 +636,8 @@ pub fn run() {
             crate::settings_ui::openrouter_stt_models,
             crate::settings_ui::input_devices,
             crate::settings_ui::settings_save,
+            crate::settings_ui::backup_create,
+            crate::settings_ui::backup_restore,
             crate::settings_ui::corr_list,
             crate::settings_ui::corr_add,
             crate::settings_ui::corr_remove,

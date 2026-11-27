@@ -35,6 +35,11 @@ tauri-plugin-single-instance = "2.5.5"
 tauri-plugin-dialog = "2.8.4"
 tauri-plugin-notification = "2.8.1"
 tauri-plugin-opener = "2.7.3"
+# Verschlüsselte Sicherung der Einstellungen (backup.rs)
+argon2 = { version = "0.6.0", default-features = false, features = ["alloc", "zeroize"] }
+aes-gcm = { version = "0.11.1", default-features = false, features = ["aes", "alloc", "zeroize"] }
+zeroize = "1.9.2"
+getrandom = "0.4.3"
 
 [dev-dependencies]
 tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "io-util"] }
@@ -60,3 +65,10 @@ evdev = "0.13.2"
 ashpd = { version = "0.14.3", default-features = false, features = ["async-io", "global_shortcuts"] }
 futures-util = "0.3.34"
 tokio = { version = "1.54.1", features = ["sync", "macros"] }
+
+# Argon2 (256 MiB) braucht ohne Optimierung rund 10 s statt unter 1 s.
+# Auch im Entwicklungsmodus (dev.cmd) optimiert übersetzen.
+[profile.dev.package.argon2]
+opt-level = 3
+[profile.dev.package.blake2]
+opt-level = 3
